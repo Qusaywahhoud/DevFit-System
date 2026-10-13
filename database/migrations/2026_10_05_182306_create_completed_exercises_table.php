@@ -8,12 +8,14 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('completed_exercises', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->string('exercise_title');
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('completed_exercises')) {
+            Schema::create('completed_exercises', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('user_id')->constrained()->onDelete('cascade');
+                $table->string('exercise_title');
+                $table->timestamps();
+            });
+        }
     }
 
     public function down(): void
