@@ -14,7 +14,6 @@ public function index(Request $request)
     {
         $category = $request->query('category');
 
-        // خريطة لربط المفاتيح الإنجليزية بالأسماء العربية لتطابق قاعدة البيانات والواجهة
         $categoriesMap = [
             'eyes' => 'العيون',
             'neck' => 'الرقبة',
@@ -26,19 +25,24 @@ public function index(Request $request)
         ];
 
         if ($category && $category !== 'all') {
-            // البحث عن المفتاح المقابل سواء كان مرسلاً بالعربي أو الإنجليزي
             $englishKey = array_search($category, $categoriesMap);
             $arabicValue = $categoriesMap[$category] ?? $category;
 
-            $exercises = Exercise::where('category', 'ILIKE', $category)
-                ->orWhere('category', 'ILIKE', $englishKey ?? '')
-                ->orWhere('category', 'ILIKE', $arabicValue)
-                ->get();
+            $exercises = Exercise::where(function($query) use ($category, $englishKey, $arabicValue) {
+                $query->whereRaw('TRIM(category) ILIKE ?', ['%' . trim($category) . '%']);
+                
+                if ($englishKey) {
+                    $query->orWhereRaw('TRIM(category) ILIKE ?', ['%' . trim($englishKey) . '%']);
+                }
+                
+                if ($arabicValue) {
+                    $query->orWhereRaw('TRIM(category) ILIKE ?', ['%' . trim($arabicValue) . '%']);
+                }
+            })->get();
         } else {
             $exercises = Exercise::all();
         }
 
-        // جلب التصنيفات الفريدة لعرضها كأزرار تصفية
         $categories = Exercise::select('category')->distinct()->pluck('category');
 
         return view('exercises', compact('exercises', 'categories', 'category', 'categoriesMap'));
