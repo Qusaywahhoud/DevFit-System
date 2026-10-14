@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Auth;
 class ExerciseController extends Controller
 {
  // دالة لعرض جميع التمارين مع إمكانية التصفية حسب التصنيف
-    public function index(Request $request)
+public function index(Request $request)
     {
         $category = $request->query('category');
 
@@ -28,9 +28,11 @@ class ExerciseController extends Controller
         if ($category && $category !== 'all') {
             // البحث عن المفتاح المقابل سواء كان مرسلاً بالعربي أو الإنجليزي
             $englishKey = array_search($category, $categoriesMap);
+            $arabicValue = $categoriesMap[$category] ?? $category;
 
-            $exercises = Exercise::where('category', $category)
-                ->orWhere('category', $englishKey)
+            $exercises = Exercise::where('category', 'ILIKE', $category)
+                ->orWhere('category', 'ILIKE', $englishKey ?? '')
+                ->orWhere('category', 'ILIKE', $arabicValue)
                 ->get();
         } else {
             $exercises = Exercise::all();
