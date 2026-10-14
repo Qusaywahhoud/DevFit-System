@@ -15,11 +15,16 @@ COPY . .
 
 RUN composer install --no-dev --optimize-autoloader
 
-# بناء الملفات
+# 1. بناء ملفات التصميم أولاً لتتولد على القرص
 RUN npm install
 RUN npm run build
 
-# التأكد من صلاحيات المجلدات بشكل كامل بما فيها مسار الـ build
+# 2. مسح الكاش وإعادة بناءه بعد توليد المانيفست لضمان قراءته بشكل صحيح
+RUN php artisan config:clear \
+    && php artisan view:clear \
+    && php artisan route:clear \
+    && php artisan config:cache
+
 RUN chown -R www-data:www-data storage bootstrap/cache public
 
 ENV APP_NAME=DevFit \
