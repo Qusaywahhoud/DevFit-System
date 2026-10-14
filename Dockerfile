@@ -11,9 +11,9 @@ WORKDIR /app
 
 COPY . .
 
-RUN composer install --no-dev --optimize-autoloader
+# تجاوز أي مشاكل في التوثيق أو الذاكرة أثناء التثبيت
+RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
 
-# ضبط الصلاحيات بشكل كامل على مجلد public ومجلدات التخزين
 RUN chown -R www-data:www-data storage bootstrap/cache public
 
 ENV APP_NAME=DevFit \
