@@ -25,6 +25,9 @@ RUN composer install --no-dev --optimize-autoloader
 
 RUN chown -R www-data:www-data storage bootstrap/cache
 
+# التأكد من إزالة أي نهايات أسطر Windows (CRLF) من ملف التشغيل
+RUN sed -i 's/\r$//' start.sh
+
 ENV APP_NAME=DevFit \
     APP_ENV=production \
     APP_DEBUG=false \
@@ -32,4 +35,5 @@ ENV APP_NAME=DevFit \
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8000"]
+# تشغيل ملف السكربت كأمر افتراضي
+CMD ["sh", "start.sh"]

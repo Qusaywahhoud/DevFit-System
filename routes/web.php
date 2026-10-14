@@ -39,29 +39,3 @@ Route::get('/dashboard', function () {
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 require __DIR__ . '/auth.php';
-
-
-
-Route::get('/test-telegram', function (TelegramService $telegram) {
-    $exercise = Exercise::inRandomOrder()->first();
-
-    if (!$exercise) {
-        return "لا توجد تمارين في القاعدة حالياً!";
-    }
-
-    $message = "💪 *تمرين جديد من نظام DevFit*:\n\n" .
-        "📌 *العنوان:* {$exercise->title_ar}\n" .
-        "📝 *الوصف:* {$exercise->description_ar}\n" .
-        "⏱️ *المدة:* {$exercise->duration_seconds} ثانية";
-
-    // ضع الـ Chat ID الذي حصلت عليه بدل الأرقام بالأسفل
-    $chatId = '8116578765';
-
-    $response = $telegram->sendMessage($chatId, $message);
-
-    if ($response->successful()) {
-        return "تم إرسال التمرين إلى تيليجرام بنجاح! 🚀";
-    }
-
-    return "فشل الإرسال، تحقق من الـ Chat ID.";
-});
