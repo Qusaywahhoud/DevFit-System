@@ -36,4 +36,4 @@ ENV APP_NAME=DevFit \
 EXPOSE 8000
 
 # تشغيل ملف السكربت كأمر افتراضي
-CMD ["sh", "start.sh"]
+CMD ["sh", "-c", "php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8000"]
