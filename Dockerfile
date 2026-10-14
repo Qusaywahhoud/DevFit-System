@@ -1,6 +1,5 @@
 FROM php:8.2-cli
 
-# تثبيت مكتبات النظام وأدوات PostgreSQL بالإضافة إلى Node.js
 RUN apt-get update && apt-get install -y \
     git unzip zip curl libpq-dev \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
@@ -14,14 +13,14 @@ WORKDIR /app
 
 COPY . .
 
-# تثبيت حزم PHP
 RUN composer install --no-dev --optimize-autoloader
 
-# السر هنا: بناء ملفات التصميم داخل السيرفر مباشرة
+# بناء الملفات
 RUN npm install
 RUN npm run build
 
-RUN chown -R www-data:www-data storage bootstrap/cache
+# التأكد من صلاحيات المجلدات بشكل كامل بما فيها مسار الـ build
+RUN chown -R www-data:www-data storage bootstrap/cache public
 
 ENV APP_NAME=DevFit \
     APP_ENV=production \
