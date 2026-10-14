@@ -4,56 +4,55 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use App\Services\TelegramService;
-use App\Models\Exercise;
+use App\Models\User;
 
 class ListenTelegramBot extends Command
 {
     protected $signature = 'telegram:listen';
-    protected $description = 'الاستماع للرسائل والأوامر الواردة من بوت تيليجرام والرد عليها محلياً';
+    protected $description = 'Listen for Telegram bot messages and link users';
 
     public function handle(TelegramService $telegram)
     {
-        $this->info('🤖 جاري الاستماع لرسائل تيليجرام محلياً... (اضغط Ctrl+C للإيقاف)');
+        $this->info('Starting Telegram listener...');
         $offset = 0;
 
         while (true) {
             $updates = $telegram->getUpdates($offset);
 
-            if ($updates && isset($updates['result'])) {
-                foreach ($updates['result'] as$update) {
-                    $updateId =$update['update_id'];
-                    $offset =$updateId + 1;
+            if (isset($updates['result']) && is_array($updates['result'])) {
+                foreach ($updates['result'] as $update) {
+                    $offset = $update['update_id'] + 1;
 
                     if (isset($update['message']['text'])) {
-                        $chatId =$update['message']['chat']['id'];
-                        $text = trim($update['message']['text']);
+                        $chatId = $update['message']['chat']['id'];
+                        $text = $update['message']['text'];
 
-                        $this->info("📥 تم استلام أمر: [ {$text} ] من المحادثة: {$chatId}");
+                        // التحقق إذا كان المستخدم أتى من زر الربط في الموقع
+                        if (str_starts_with($text, '/start ')) {
+                            // استخراج رقم المستخدم من الكود المرسل
+                            $userId = str_replace('/start ', '', $text);
 
-                        // الرد على أمر /start أو /help
-                        if ($text === '/start' || $text === '/help') {$reply = "أهلاً بك في نظام **DevFit** 🤖💪\n\n" .
-                                     "نظامك المفضل لتخفيف إجهاد الجلوس الطويل أثناء البرمجة.\n" .
-                                     "اختر أو اكتب الأمر `/exercise` للحصول على تمرين عشوائي فوري! 🧉✨";
-                            $telegram->sendMessage($chatId,$reply);
-                        } 
-                        // الرد على أمر /exercise لجلب تمرين عشوائي
-                        elseif ($text === '/exercise') {$exercise = Exercise::inRandomOrder()->first();
-                            
-                            if ($exercise) {$reply = "💪 *تمرين فوري من DevFit*:\n\n" .
-                                         "📌 *العنوان:* {$exercise->title_ar}\n" .
-                                         "📝 *الوصف:* {$exercise->description_ar}\n" .
-                                         "⏱️ *المدة:* {$exercise->duration_seconds} ثانية";
+                            $user = User::find($userId);
+
+                            if ($user) {
+                                // حفظ الـ Chat ID
+                                $user->telegram_chat_id = $chatId;
+                                $user->save();
+
+                                $reply = "أهلاً بك يا {$user->name}! 🎉\n\nتم ربط حسابك في DevFit بنجاح. ستصلك التمارين المجدولة هنا.";
                             } else {
-                                $reply = "عذراً، لا توجد تمارين متاحة في قاعدة البيانات حالياً.";
+                                $reply = "عذراً، لم أتمكن من العثور على حسابك. يرجى التأكد من الضغط على الرابط من داخل لوحة التحكم.";
                             }
-                            
-                            $telegram->sendMessage($chatId,$reply);
+                        } else {
+                            // رد افتراضي لأي رسالة أخرى
+                            $reply = "مرحباً بك في بوت DevFit! 💪\nلربط حسابك، يرجى الدخول إلى لوحة التحكم في الموقع والضغط على زر الربط.";
                         }
+
+                        $telegram->sendMessage($chatId, $reply);
                     }
                 }
             }
-
-            sleep(2); // انتظار ثانيتين لتجنب الضغط على الـ API
+            sleep(3);
         }
     }
 }

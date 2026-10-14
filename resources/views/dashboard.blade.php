@@ -9,9 +9,9 @@
     <div class="py-12" dir="{{ app()->getLocale() == 'ar' ? 'rtl' : 'ltr' }}">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white dark:bg-gray-900 shadow-xl sm:rounded-2xl p-6 md:p-8 border border-gray-200 dark:border-gray-800">
-                
+
                 <!-- رأس اللوحة ومعلومات المستخدم -->
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 pb-6 border-b border-gray-200 dark:border-gray-800">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-6 border-b border-gray-200 dark:border-gray-800">
                     <div>
                         <h3 class="text-2xl font-extrabold text-blue-600 dark:text-blue-400">
                             {{ app()->getLocale() == 'ar' ? 'أهلاً بك، ' . Auth::user()->name . ' 👋' : 'Welcome Back, ' . Auth::user()->name . ' 👋' }}
@@ -23,24 +23,49 @@
                     <div>
                         <a href="{{ url('/') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold transition shadow-md inline-flex items-center gap-2">
                             <span>{{ app()->getLocale() == 'ar' ? 'العودة لصفحة التمارين' : 'Back to Exercises' }}</span>
-                            <span>🏋️️‍♂️</span>
+                            <span>🏋‍♂️</span>
                         </a>
                     </div>
                 </div>
+
+                <!-- 🤖 قسم ربط تيليجرام الجديد -->
+                <div class="mb-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-800 rounded-2xl border border-blue-100 dark:border-gray-700 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4 transition hover:shadow-md">
+                    <div>
+                        <h3 class="text-lg font-bold text-blue-800 dark:text-blue-400 mb-1">
+                            {{ app()->getLocale() == 'ar' ? '🤖 تفعيل إشعارات تيليجرام' : '🤖 Enable Telegram Notifications' }}
+                        </h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-300">
+                            {{ app()->getLocale() == 'ar' ? 'اربط حسابك بالبوت لتستلم التمارين اليومية المخصصة لك مباشرة على تيليجرام!' : 'Link your account with our bot to receive your daily exercises directly on Telegram!' }}
+                        </p>
+                    </div>
+                    <div>
+                        @if(auth()->user()->telegram_chat_id)
+                            <span class="inline-flex items-center px-4 py-2.5 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 rounded-xl font-bold text-sm border border-green-200 dark:border-green-800">
+                                {{ app()->getLocale() == 'ar' ? '✅ حسابك مربوط بنجاح' : '✅ Account Linked Successfully' }}
+                            </span>
+                        @else
+<a href="https://t.me/devfit_reminder_bot?start={{ auth()->id() }}" target="_blank"                               class="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-md transition">
+                                <span>{{ app()->getLocale() == 'ar' ? 'اربط حسابك الآن' : 'Link Account Now' }}</span>
+                                <span>🚀</span>
+                            </a>
+                        @endif
+                    </div>
+                </div>
+                <!-- نهاية قسم تيليجرام -->
 
                 <!-- حساب الإحصائيات برمجياً -->
                 @php
                     $userId = Auth::id();
                     $completedExercises = \App\Models\CompletedExercise::where('user_id', $userId)->latest()->get();
-                    
+
                     // 1. إجمالي التمارين
                     $totalExercises = $completedExercises->count();
-                    
+
                     // 2. تمارين هذا الأسبوع
                     $thisWeek = \App\Models\CompletedExercise::where('user_id', $userId)
                                             ->where('created_at', '>=', now()->startOfWeek())
                                             ->count();
-                    
+
                     // 3. أيام الالتزام الفريدة
                     $uniqueDays = $completedExercises->map(function ($ex) {
                         return $ex->created_at->format('Y-m-d');
@@ -49,7 +74,7 @@
                     // 4. حساب السلسلة المتتالية (Streak)
                     $streak = 0;
                     $expectedDate = now()->format('Y-m-d');
-                    
+
                     if ($uniqueDays->contains($expectedDate) || $uniqueDays->contains(now()->subDay()->format('Y-m-d'))) {
                         $currentCheck = $uniqueDays->contains($expectedDate) ? now() : now()->subDay();
                         foreach ($uniqueDays as $day) {
@@ -63,18 +88,18 @@
                     }
 
                     // 5. حساب تقدم اليوم (مع تثبيت العرض عند الحد الأقصى 3)
-                    $dailyGoal = 3; 
+                    $dailyGoal = 3;
                     $todayExercises = \App\Models\CompletedExercise::where('user_id', $userId)
                                             ->whereDate('created_at', now()->toDateString())
                                             ->count();
-                    
+
                     $displayedTodayExercises = min($todayExercises, $dailyGoal);
                     $progressPercentage = $todayExercises > 0 ? min(($todayExercises / $dailyGoal) * 100, 100) : 0;
-               
+
                    // 6. تجهيز بيانات لوحة النشاط (Contribution Graph) آخر 4 أشهر
                     $startDate = now()->subDays(119); // 17 أسبوع * 7 أيام
                     $endDate = now();
-                    
+
                     $dailyActivity = \App\Models\CompletedExercise::selectRaw('DATE(created_at) as date, COUNT(*) as count')
                                         ->where('user_id', $userId)
                                         ->where('created_at', '>=', $startDate->startOfDay())
@@ -83,11 +108,11 @@
 
                     $activityGrid = [];
                     $currentDate = clone $startDate;
-                    
+
                     while ($currentDate <= $endDate) {
                         $dateStr = $currentDate->format('Y-m-d');
                         $count = $dailyActivity[$dateStr] ?? 0;
-                        
+
                         $level = 0;
                         if ($count == 1) $level = 1;
                         elseif ($count == 2) $level = 2;
@@ -98,11 +123,11 @@
                             'count' => $count,
                             'level' => $level
                         ];
-                        
+
                         $currentDate->addDay();
                     }
                 @endphp
-                
+
                 <!-- شريط الهدف اليومي -->
                 <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 mb-8 transition hover:shadow-md">
                     <div class="flex justify-between items-end mb-3">
@@ -127,7 +152,7 @@
                     </div>
                     @if($todayExercises >= $dailyGoal)
                         <div class="mt-4 p-3 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-xl text-sm font-bold text-center flex items-center justify-center gap-2">
-                            <span>🎉</span> 
+                            <span>🎉</span>
                             {{ app()->getLocale() == 'ar' ? 'مذهل يا وحش! لقد حققت هدفك اليومي بالكامل، استمر!' : 'Amazing! You have fully achieved your daily goal, keep it up!' }}
                         </div>
                     @endif
@@ -164,7 +189,7 @@
                         </div>
                     </div>
                 </div>
-               
+
                 <!-- قسم الأوسمة 🏅 -->
                 <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 mb-10 transition hover:shadow-md">
                     <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">
@@ -212,7 +237,7 @@
                     <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4 text-right">
                         {{ app()->getLocale() == 'ar' ? 'نشاط التمارين (آخر 4 أشهر) 🟩' : 'Exercise Activity (Last 4 Months) 🟩' }}
                     </h3>
-                    
+
                     <div class="overflow-x-auto pb-2 flex justify-start" dir="ltr">
                         <div class="inline-block">
                             <div class="flex justify-between text-xs text-gray-400 dark:text-gray-500 mb-1 pr-6" style="width: 100%;">
@@ -245,13 +270,13 @@
                                     @foreach($weeks as $week)
                                         <div class="flex flex-col gap-1">
                                             @foreach($week as $day)
-                                                <div style="width: 14px; height: 14px;" 
-                                                     class="rounded-sm 
-                                                     @if($day['level'] == 0) bg-gray-100 dark:bg-gray-700 
-                                                     @elseif($day['level'] == 1) bg-green-300 dark:bg-green-800 
-                                                     @elseif($day['level'] == 2) bg-green-500 dark:bg-green-600 
-                                                     @elseif($day['level'] == 3) bg-green-700 dark:bg-green-400 
-                                                     @endif" 
+                                                <div style="width: 14px; height: 14px;"
+                                                     class="rounded-sm
+                                                     @if($day['level'] == 0) bg-gray-100 dark:bg-gray-700
+                                                     @elseif($day['level'] == 1) bg-green-300 dark:bg-green-800
+                                                     @elseif($day['level'] == 2) bg-green-500 dark:bg-green-600
+                                                     @elseif($day['level'] == 3) bg-green-700 dark:bg-green-400
+                                                     @endif"
                                                      title="{{ $day['count'] }} تمارين في تاريخ {{ $day['date'] }}">
                                                 </div>
                                             @endforeach
@@ -261,7 +286,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="flex justify-end items-center mt-4 gap-2 text-xs text-gray-500 dark:text-gray-400">
                         <span>{{ app()->getLocale() == 'ar' ? 'أقل' : 'Less' }}</span>
                         <div style="width: 12px; height: 12px;" class="rounded-sm bg-gray-100 dark:bg-gray-700"></div>
@@ -284,7 +309,7 @@
                         </a>
                     @endif
                 </div>
-                
+
                 @if($completedExercises->count() > 0)
                     <div class="space-y-3">
                         @foreach($completedExercises as $log)
