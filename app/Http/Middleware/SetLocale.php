@@ -11,7 +11,7 @@ class SetLocale
 {
     public function handle(Request $request, Closure $next)
     {
-        // إذا تم إرسال لغة جديدة عبر الرابط (مثل ?lang=ar أو ?lang=en)
+        // 1. التحقق إذا تم إرسال اللغة عبر Query Parameter مثل ?lang=ar
         if ($request->has('lang')) {
             $lang = $request->get('lang');
             if (in_array($lang, ['ar', 'en'])) {
@@ -19,12 +19,14 @@ class SetLocale
             }
         }
 
-        // تطبيق اللغة المخزنة في الجلسة، أو الافتراضية (العربية مثلاً)
-        if (Session::has('locale')) {
-            App::setLocale(Session::get('locale'));
-        } else {
-            App::setLocale('ar'); // اللغة الافتراضية
+        // 2. تطبيق اللغة المخزنة في الجلسة أو الاعتماد على العربية كافتراضية
+        $locale = Session::get('locale', 'ar');
+
+        if (!in_array($locale, ['ar', 'en'])) {
+            $locale = 'ar';
         }
+
+        App::setLocale($locale);
 
         return $next($request);
     }
