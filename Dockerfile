@@ -1,15 +1,12 @@
 FROM php:8.2-cli
 
-<<<<<<< HEAD
 # تثبيت مكتبات النظام وأدوات PostgreSQL
-=======
->>>>>>> 2a55079c41270891649dab1eac6e9b9934640c6d
 RUN apt-get update && apt-get install -y \
     git unzip zip curl libpq-dev \
     && docker-php-ext-configure pdo_pgsql --with-pdo-pgsql=/usr \
     && docker-php-ext-install pdo_pgsql pcntl \
     && curl -sS https://getcomposer.org/installer \
-       | php -- --install-dir=/usr/local/bin --filename=composer
+    | php -- --install-dir=/usr/local/bin --filename=composer
 
 WORKDIR /app
 
