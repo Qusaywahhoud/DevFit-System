@@ -1,41 +1,55 @@
-<?php
-
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\ExerciseController;
-use App\Http\Controllers\ProfileController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use App\Services\TelegramService;
-use App\Models\Exercise;
+use App\Models\User;
 
-// صفحة التمارين الرئيسية (متاحة للجميع)
-Route::get('/', [ExerciseController::class, 'index']);
-Route::get('/export-log', [\App\Http\Controllers\ExerciseController::class, 'exportCsv'])->name('export.log')->middleware('auth');
-// حفظ التمرين المنجز (للمستخدمين المسجلين)
-Route::post('/complete-exercise', [ExerciseController::class, 'completeExercise'])->name('complete.exercise')->middleware('auth');
+// 1. مسار استقبال بيانات المستخدم من تيليجرام (Webhook)
+Route::post('/telegram/webhook', function (Request $request, TelegramService $telegram) {
+$update = $request->all();
 
-// === مسارات الإدارة والتحكم الكامل بالتمارين (محمية بـ IsAdmin) ===
-Route::middleware(['auth', \App\Http\Middleware\IsAdmin::class])->group(function () {
-    Route::get('/create', [ExerciseController::class, 'create']);
-    Route::post('/exercises', [ExerciseController::class, 'store']);
-    Route::get('/exercises/{id}/edit', [ExerciseController::class, 'edit'])->name('exercises.edit');
-    Route::put('/exercises/{id}', [ExerciseController::class, 'update'])->name('exercises.update');
-    Route::delete('/exercises/{id}', [ExerciseController::class, 'destroy'])->name('exercises.destroy');
+if (isset($update['message']['text'])) {
+$chatId = $update['message']['chat']['id'];
+$text = $update['message']['text'];
+
+// إذا ضغط المستخدم على زر الربط في موقعك
+if (str_starts_with($text, '/start ')) {
+$userId = str_replace('/start ', '', $text);
+$user = User::find($userId);
+
+if ($user) {
+$user->telegram_chat_id = $chatId;
+$user->save();
+
+$reply = "أهلاً بك يا {$user->name}! 🎉\n\nتم ربط حسابك في DevFit بنجاح. ستصلك التمارين هنا.";
+} else {
+$reply = "عذراً، لم أتمكن من العثور على حسابك.";
+}
+} else {
+$reply = "مرحباً! لربط حسابك، يرجى الضغط على زر تيليجرام من داخل لوحة تحكم موقع DevFit.";
+}
+
+$telegram->sendMessage($chatId, $reply);
+}
+return response()->json(['status' => 'success']);
 });
-Route::get('/lang/{locale}', function ($locale) {
-    if (in_array($locale, ['ar', 'en'])) {
-        session(['locale' => $locale]);
-    }
-    return redirect()->back();
-})->name('lang.switch');
-// مسارات الملف الشخصي (Profile)
-Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+// 2. مسار تفعيل الـ Webhook (سنزوره مرة واحدة فقط لربط الموقع بتيليجرام)
+Route::get('/set-telegram-webhook', function () {
+$token = env('TELEGRAM_BOT_TOKEN');
+// استخدمنا secure_url لضمان أن الرابط يبدأ بـ https كما يفرض تيليجرام
+$url = secure_url('/telegram/webhook');
+
+$response = Http::post("https://api.telegram.org/bot{$token}/setWebhook", [
+'url' => $url
+]);
+
+return $response->json();
 });
 
-// لوحة التحكم الافتراضية لـ Breeze
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+use Illuminate\Support\Facades\Artisan;
 
-require __DIR__ . '/auth.php';
+// مسار سري لتشغيل المجدول (لا تعطِ هذا الرابط لأحد)
+Route::get('/secret-cron-runner-devfit', function () {
+Artisan::call('schedule:run');
+return response()->json(['status' => 'success', 'message' => 'Scheduler executed!']);
+});
