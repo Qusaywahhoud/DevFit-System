@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Auth;
 use App\Services\TelegramService;
 use App\Models\User;
 use App\Models\CompletedExercise;
@@ -14,8 +15,9 @@ Route::get('/', function () {
 });
 
 Route::get('/dashboard', function () {
-    $completedExercises = auth()->check() ? CompletedExercise::where('user_id', auth()->id())->latest()->take(10)->get() : collect();
-    return view('dashboard', ['completedExercises' => $completedExercises]);
+    $userId = Auth::id();
+    $completedExercises = $userId ? CompletedExercise::where('user_id', $userId)->latest()->take(10)->get() : collect();
+    return view('dashboard', compact('completedExercises'));
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::get('/export-log', function () {
