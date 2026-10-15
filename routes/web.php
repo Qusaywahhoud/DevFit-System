@@ -24,7 +24,6 @@ Route::get('/export-log', function () {
     return back();
 })->middleware(['auth'])->name('export.log');
 
-// مسارات البروفايل لتجاوز خطأ القائمة العلوية
 Route::get('/profile', function () {
     return redirect()->route('dashboard');
 })->middleware(['auth'])->name('profile.edit');
@@ -66,7 +65,6 @@ Route::post('/telegram/webhook', function (Request $request, TelegramService $te
                     'exercise_id' => $exercise->id,
                     'exercise_title' => $exercise->title_ar ?? 'تمرين',
                 ]);
-                // تم إصلاح الخطأ المطبعى وإغلاق علامة التنسيق هنا
                 $telegram->sendMessage($chatId, "أحسنت يا بطل! 🥇\nتم تسجيل تمرين *{$exercise->title_ar}* في سجل إنجازاتك بنجاح.");
             }
         }
@@ -118,7 +116,6 @@ Route::get('/secret-cron-runner-devfit', function () {
     return response()->json(['status' => 'success', 'message' => 'Scheduler executed!']);
 });
 
-// مسار لتفريغ الكاش العالق في السيرفر
 Route::get('/fix-cache-devfit', function () {
     Artisan::call('optimize:clear');
     return response()->json(['status' => 'success', 'message' => 'All caches cleared successfully!']);
