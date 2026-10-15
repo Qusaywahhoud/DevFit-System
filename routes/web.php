@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Artisan;
+use App\Http\Controllers\ProfileController;
 use App\Services\TelegramService;
 use App\Models\User;
 use App\Models\CompletedExercise;
@@ -11,20 +12,27 @@ use App\Models\Exercise;
 
 /*
 |--------------------------------------------------------------------------
-| 1. مسارات موقع DevFit الأساسية
+| 1. مسارات الموقع الأساسية (DevFit & Breeze)
 |--------------------------------------------------------------------------
 */
 
-// تحويل الزائر فوراً إلى لوحة التحكم
+// التحويل المباشر للوحة التحكم
 Route::get('/', function () {
     return redirect()->route('dashboard');
 });
 
 Route::get('/dashboard', function () {
     return view('dashboard');
-})->middleware(['auth'])->name('dashboard');
+})->middleware(['auth', 'verified'])->name('dashboard');
 
-// مسار تبديل اللغة (المفقود الذي سبب الخطأ)
+// مسارات الملف الشخصي (الحل الجذري للخطأ)
+Route::middleware('auth')->group(function () {
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+});
+
+// مسار تغيير اللغة
 Route::get('/lang/{locale}', function ($locale) {
     if (in_array($locale, ['en', 'ar'])) {
         session()->put('locale', $locale);
@@ -32,6 +40,7 @@ Route::get('/lang/{locale}', function ($locale) {
     return redirect()->back();
 })->name('lang.switch');
 
+// استدعاء مسارات المصادقة (تسجيل الدخول، الخروج، الخ)
 if (file_exists(__DIR__ . '/auth.php')) {
     require __DIR__ . '/auth.php';
 }
