@@ -43,10 +43,10 @@ Route::middleware(['auth'])->group(function () {
 
 Route::get('/lang/{locale}', function ($locale) {
     if (in_array($locale, ['en', 'ar'])) {
-        // تخزين اللغة في Cookie لمدة سنة كاملة وتوجيه الصفحة
-        return redirect()->back()->cookie('locale', $locale, 525600);
+        session(['locale' => $locale]);
+        app()->setLocale($locale);
     }
-    return redirect()->back();
+    return redirect()->to('/dashboard');
 })->name('lang.switch');
 
 if (file_exists(__DIR__ . '/auth.php')) {

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" dir="{{ app()->getLocale() == 'ar' ? 'rtl' : 'ltr' }}">
+<html lang="{{ app()->getLocale() }}" dir="{{ app()->getLocale() == 'ar' ? 'rtl' : 'ltr' }}">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -13,15 +13,6 @@
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
-
-        <script>
-            // تطبيق الاتجاه فور التحميل لمنع الوميض
-            (function() {
-                const savedLang = localStorage.getItem('app_locale') || 'ar';
-                document.documentElement.lang = savedLang;
-                document.documentElement.dir = savedLang === 'ar' ? 'rtl' : 'ltr';
-            })();
-        </script>
     </head>
     <body class="font-sans antialiased">
         <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
