@@ -5,15 +5,14 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
-use App\Http\Controllers\ExerciseController;
-use App\Http\Controllers\ProfileController;
-use App\Services\TelegramService;
 use App\Models\User;
 use App\Models\CompletedExercise;
 use App\Models\Exercise;
 
-// إقلاع الموقع مباشرة على صفحة التمارين الرئيسية
-Route::get('/', [ExerciseController::class, 'index'])->name('exercises.index');
+// مسار رئيسي آمن ومباشر يعيد التوجيه للوحة التحكم
+Route::get('/', function () {
+    return redirect()->route('dashboard');
+})->name('exercises.index');
 
 // لوحة التحكم والإحصائيات
 Route::get('/dashboard', function () {
@@ -22,20 +21,23 @@ Route::get('/dashboard', function () {
     return view('dashboard', compact('completedExercises'));
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-// مسارات التمارين
-Route::post('/complete-exercise', [ExerciseController::class, 'completeExercise'])->name('exercises.complete');
-Route::get('/export-log', [ExerciseController::class, 'exportCsv'])->middleware(['auth'])->name('export.log');
-
+// مسارات إضافية للوحة التحكم والملف الشخصي
 Route::middleware(['auth'])->group(function () {
-    Route::get('/create', [ExerciseController::class, 'create'])->name('exercises.create');
-    Route::post('/exercises', [ExerciseController::class, 'store'])->name('exercises.store');
-    Route::get('/exercises/{id}/edit', [ExerciseController::class, 'edit'])->name('exercises.edit');
-    Route::put('/exercises/{id}', [ExerciseController::class, 'update'])->name('exercises.update');
-    Route::delete('/exercises/{id}', [ExerciseController::class, 'destroy'])->name('exercises.destroy');
+    Route::get('/export-log', function () {
+        return back();
+    })->name('export.log');
 
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::get('/profile', function () {
+        return redirect()->route('dashboard');
+    })->name('profile.edit');
+
+    Route::patch('/profile', function () {
+        return redirect()->route('dashboard');
+    })->name('profile.update');
+
+    Route::delete('/profile', function () {
+        return redirect()->route('dashboard');
+    })->name('profile.destroy');
 });
 
 Route::get('/lang/{locale}', function ($locale) {
@@ -117,9 +119,4 @@ Route::get('/set-telegram-webhook', function () {
 Route::get('/secret-cron-runner-devfit', function () {
     Artisan::call('schedule:run');
     return response()->json(['status' => 'success', 'message' => 'Scheduler executed!']);
-});
-
-Route::get('/fix-cache-devfit', function () {
-    Artisan::call('optimize:clear');
-    return response()->json(['status' => 'success', 'message' => 'All caches cleared successfully!']);
 });
