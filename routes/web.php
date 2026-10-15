@@ -23,10 +23,18 @@ Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-// تعريف مسار profile.edit المفقود بشكل صريح لمنع أي خطأ 500
+// حل جذري نهائي: تعريف مسار profile.edit مباشرة ليتجاهل أي خطأ في القائمة القديمة
 Route::get('/profile', function () {
     return redirect()->route('dashboard');
 })->middleware(['auth'])->name('profile.edit');
+
+Route::patch('/profile', function () {
+    return redirect()->route('dashboard');
+})->middleware(['auth']);
+
+Route::delete('/profile', function () {
+    return redirect()->route('dashboard');
+})->middleware(['auth']);
 
 // مسار تغيير اللغة
 Route::get('/lang/{locale}', function ($locale) {
@@ -36,7 +44,6 @@ Route::get('/lang/{locale}', function ($locale) {
     return redirect()->back();
 })->name('lang.switch');
 
-// مسارات المصادقة (تسجيل الدخول والخروج)
 if (file_exists(__DIR__ . '/auth.php')) {
     require __DIR__ . '/auth.php';
 }
@@ -98,7 +105,6 @@ Route::post('/telegram/webhook', function (Request $request, TelegramService $te
         if ($text === '/stats') {
             $count = CompletedExercise::where('user_id', $user->id)->count();
             $telegram->sendMessage($chatId, "📊 *إحصائياتك يا {$user->name}:*\n\n🏆 إجمالي التمارين المنجزة: *{$count}*\nاستمر يا بطل ولا تتوقف! 🔥");
-
         } elseif ($text === '/exercise' || str_contains($text, 'جاهز') || str_contains($text, 'نشيط')) {
             $exercise = Exercise::inRandomOrder()->first();
             if ($exercise) {
@@ -106,12 +112,11 @@ Route::post('/telegram/webhook', function (Request $request, TelegramService $te
 
                 $keyboard = [
                     'inline_keyboard' => [
-                        [ ['text' => '✅ أتممت التمرين', 'callback_data' => 'complete_' . $exercise->id] ]
+                        [['text' => '✅ أتممت التمرين', 'callback_data' => 'complete_' . $exercise->id]]
                     ]
                 ];
                 $telegram->sendMessage($chatId, $reply, json_encode($keyboard));
             }
-
         } elseif (str_contains($text, 'تعبت') || str_contains($text, 'مرهق') || str_contains($text, 'مصدع')) {
             $exercise = Exercise::orderBy('duration_seconds', 'asc')->first();
             if ($exercise) {
@@ -119,12 +124,11 @@ Route::post('/telegram/webhook', function (Request $request, TelegramService $te
 
                 $keyboard = [
                     'inline_keyboard' => [
-                        [ ['text' => '✅ أتممت بسلام', 'callback_data' => 'complete_' . $exercise->id] ]
+                        [['text' => '✅ أتممت بسلام', 'callback_data' => 'complete_' . $exercise->id]]
                     ]
                 ];
                 $telegram->sendMessage($chatId, $reply, json_encode($keyboard));
             }
-
         } else {
             $reply = "أهلاً بك في DevFit 🤖\n\nإليك الأوامر المتاحة:\n🏋️‍♂️ /exercise - اطلب تمريناً الآن\n📊 /stats - عرض إحصائياتك المنجزة\n\n💡 *نصيحة:* يمكنك ببساطة كتابة حالتك المزاجية (مثلاً: جاهز، تعبت، مرهق) وسأختار لك ما يناسبك!";
             $telegram->sendMessage($chatId, $reply);
