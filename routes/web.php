@@ -15,7 +15,7 @@ use App\Models\Exercise;
 |--------------------------------------------------------------------------
 */
 
-// تحويل الزائر فوراً إلى لوحة التحكم (أو صفحة تسجيل الدخول إذا لم يكن مسجلاً)
+// تحويل الزائر فوراً إلى لوحة التحكم
 Route::get('/', function () {
     return redirect()->route('dashboard');
 });
@@ -23,6 +23,14 @@ Route::get('/', function () {
 Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth'])->name('dashboard');
+
+// مسار تبديل اللغة (المفقود الذي سبب الخطأ)
+Route::get('/lang/{locale}', function ($locale) {
+    if (in_array($locale, ['en', 'ar'])) {
+        session()->put('locale', $locale);
+    }
+    return redirect()->back();
+})->name('lang.switch');
 
 if (file_exists(__DIR__ . '/auth.php')) {
     require __DIR__ . '/auth.php';
@@ -34,11 +42,9 @@ if (file_exists(__DIR__ . '/auth.php')) {
 |--------------------------------------------------------------------------
 */
 
-// أ. مسار استقبال بيانات الـ Webhook
 Route::post('/telegram/webhook', function (Request $request, TelegramService $telegram) {
     $update = $request->all();
 
-    // معالجة الضغط على الأزرار التفاعلية
     if (isset($update['callback_query'])) {
         $chatId = $update['callback_query']['message']['chat']['id'];
         $data = $update['callback_query']['data'];
@@ -62,7 +68,6 @@ Route::post('/telegram/webhook', function (Request $request, TelegramService $te
         return response()->json(['status' => 'success']);
     }
 
-    // معالجة الرسائل النصية والأوامر
     if (isset($update['message']['text'])) {
         $chatId = $update['message']['chat']['id'];
         $text = $update['message']['text'];
@@ -121,19 +126,13 @@ Route::post('/telegram/webhook', function (Request $request, TelegramService $te
     return response()->json(['status' => 'success']);
 });
 
-// ب. مسار تفعيل الـ Webhook
 Route::get('/set-telegram-webhook', function () {
     $token = env('TELEGRAM_BOT_TOKEN');
     $url = secure_url('/telegram/webhook');
-
-    $response = Http::post("https://api.telegram.org/bot{$token}/setWebhook", [
-        'url' => $url
-    ]);
-
+    $response = Http::post("https://api.telegram.org/bot{$token}/setWebhook", ['url' => $url]);
     return $response->json();
 });
 
-// ج. مسار المجدول
 Route::get('/secret-cron-runner-devfit', function () {
     Artisan::call('schedule:run');
     return response()->json(['status' => 'success', 'message' => 'Scheduler executed!']);
