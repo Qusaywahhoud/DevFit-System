@@ -12,17 +12,17 @@ use App\Models\User;
 use App\Models\CompletedExercise;
 use App\Models\Exercise;
 
-// 1. إقلاع الموقع مباشرة على صفحة التمارين الرئيسية
+// إقلاع الموقع مباشرة على صفحة التمارين الرئيسية
 Route::get('/', [ExerciseController::class, 'index'])->name('exercises.index');
 
-// 2. لوحة التحكم والإحصائيات
+// لوحة التحكم والإحصائيات
 Route::get('/dashboard', function () {
     $userId = Auth::id();
     $completedExercises = $userId ? CompletedExercise::where('user_id', $userId)->latest()->take(10)->get() : collect();
     return view('dashboard', compact('completedExercises'));
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-// 3. مسارات التمارين (إنهاء تمرين، تصدير Excel، إضافة، تعديل، حذف)
+// مسارات التمارين
 Route::post('/complete-exercise', [ExerciseController::class, 'completeExercise'])->name('exercises.complete');
 Route::get('/export-log', [ExerciseController::class, 'exportCsv'])->middleware(['auth'])->name('export.log');
 
@@ -33,13 +33,11 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/exercises/{id}', [ExerciseController::class, 'update'])->name('exercises.update');
     Route::delete('/exercises/{id}', [ExerciseController::class, 'destroy'])->name('exercises.destroy');
 
-    // 4. مسارات الملف الشخصي (ProfileController)
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-// 5. تبديل اللغة (العربية / الإنجليزية)
 Route::get('/lang/{locale}', function ($locale) {
     if (in_array($locale, ['en', 'ar'])) {
         session()->put('locale', $locale);
@@ -51,7 +49,6 @@ if (file_exists(__DIR__ . '/auth.php')) {
     require __DIR__ . '/auth.php';
 }
 
-// 6. مسار Webhook بوت التيليجرام
 Route::post('/telegram/webhook', function (Request $request, TelegramService $telegram) {
     $update = $request->all();
 
