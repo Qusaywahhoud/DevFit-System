@@ -5,6 +5,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
+use App\Services\TelegramService;
 use App\Models\User;
 use App\Models\CompletedExercise;
 use App\Models\Exercise;
@@ -43,7 +44,7 @@ Route::middleware(['auth'])->group(function () {
 Route::get('/lang/{locale}', function ($locale) {
     if (in_array($locale, ['en', 'ar'])) {
         session()->put('locale', $locale);
-        app()->setLocale($locale); // التطبيق الفوري للغة
+        app()->setLocale($locale);
     }
     return redirect()->back();
 })->name('lang.switch');
