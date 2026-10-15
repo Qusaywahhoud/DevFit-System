@@ -5,53 +5,62 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\App;
 use App\Services\TelegramService;
 use App\Models\User;
 use App\Models\CompletedExercise;
 use App\Models\Exercise;
 
-// مسار رئيسي آمن ومباشر يعيد التوجيه للوحة التحكم
-Route::get('/', function () {
-    return redirect()->route('dashboard');
-})->name('exercises.index');
+// 1. تطبيق اللغة مباشرة هنا كـ Middleware داخلي يغلف كل الموقع (يضمن التنفيذ 100%)
+Route::middleware(function (Request $request, $next) {
+    $locale = $request->cookie('app_locale', 'ar');
+    App::setLocale(in_array($locale, ['ar', 'en']) ? $locale : 'ar');
+    return $next($request);
+})->group(function () {
 
-// لوحة التحكم والإحصائيات
-Route::get('/dashboard', function () {
-    $userId = Auth::id();
-    $completedExercises = $userId ? CompletedExercise::where('user_id', $userId)->latest()->take(10)->get() : collect();
-    return view('dashboard', compact('completedExercises'));
-})->middleware(['auth', 'verified'])->name('dashboard');
-
-// مسارات إضافية للوحة التحكم والملف الشخصي
-Route::middleware(['auth'])->group(function () {
-    Route::get('/export-log', function () {
-        return back();
-    })->name('export.log');
-
-    Route::get('/profile', function () {
+    // مسار رئيسي يعيد التوجيه
+    Route::get('/', function () {
         return redirect()->route('dashboard');
-    })->name('profile.edit');
+    })->name('exercises.index');
 
-    Route::patch('/profile', function () {
+    // لوحة التحكم
+    Route::get('/dashboard', function () {
+        $userId = Auth::id();
+        $completedExercises = $userId ? CompletedExercise::where('user_id', $userId)->latest()->take(10)->get() : collect();
+        return view('dashboard', compact('completedExercises'));
+    })->middleware(['auth', 'verified'])->name('dashboard');
+
+    // مسارات الملف الشخصي
+    Route::middleware(['auth'])->group(function () {
+        Route::get('/export-log', function () {
+            return back();
+        })->name('export.log');
+        Route::get('/profile', function () {
+            return redirect()->route('dashboard');
+        })->name('profile.edit');
+        Route::patch('/profile', function () {
+            return redirect()->route('dashboard');
+        })->name('profile.update');
+        Route::delete('/profile', function () {
+            return redirect()->route('dashboard');
+        })->name('profile.destroy');
+    });
+
+    // 2. مسار تبديل اللغة (يقوم بتخزين الكوكي وتوجيه آمن للوحة التحكم)
+    Route::get('/lang/{locale}', function ($locale) {
+        if (in_array($locale, ['en', 'ar'])) {
+            $cookie = cookie('app_locale', $locale, 525600); // سنة كاملة
+            return redirect()->route('dashboard')->withCookie($cookie);
+        }
         return redirect()->route('dashboard');
-    })->name('profile.update');
+    })->name('lang.switch');
 
-    Route::delete('/profile', function () {
-        return redirect()->route('dashboard');
-    })->name('profile.destroy');
-});
-
-Route::get('/lang/{locale}', function ($locale) {
-    if (in_array($locale, ['en', 'ar'])) {
-        session(['locale' => $locale]);
-        app()->setLocale($locale);
+    if (file_exists(__DIR__ . '/auth.php')) {
+        require __DIR__ . '/auth.php';
     }
-    return redirect()->to('/dashboard');
-})->name('lang.switch');
+}); // إغلاق مجموعة اللغة
 
-if (file_exists(__DIR__ . '/auth.php')) {
-    require __DIR__ . '/auth.php';
-}
+// --- مسارات تيليجرام (تبقى خارج مجموعة اللغة لكي لا تتعطل الـ Webhooks) ---
 
 Route::post('/telegram/webhook', function (Request $request, TelegramService $telegram) {
     $update = $request->all();
