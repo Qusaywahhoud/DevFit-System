@@ -11,7 +11,7 @@ class SetLocale
 {
     public function handle(Request $request, Closure $next)
     {
-        // 1. التحقق إذا تم إرسال اللغة عبر Query Parameter مثل ?lang=ar
+        // التحقق إذا تم إرسال اللغة عبر Query Parameter مثل ?lang=ar
         if ($request->has('lang')) {
             $lang = $request->get('lang');
             if (in_array($lang, ['ar', 'en'])) {
@@ -19,7 +19,7 @@ class SetLocale
             }
         }
 
-        // 2. تطبيق اللغة المخزنة في الجلسة أو الاعتماد على العربية كافتراضية
+        // تطبيق اللغة المخزنة في الجلسة أو الاعتماد على العربية كافتراضية
         $locale = Session::get('locale', 'ar');
 
         if (!in_array($locale, ['ar', 'en'])) {
