@@ -24,6 +24,7 @@ Route::get('/export-log', function () {
     return back();
 })->middleware(['auth'])->name('export.log');
 
+// حل جذري قاطع: مسار profile.edit يعيد توجيه المستخدم للوحة التحكم ليتجاوز خطأ navigation.blade.php
 Route::get('/profile', function () {
     return redirect()->route('dashboard');
 })->middleware(['auth'])->name('profile.edit');
