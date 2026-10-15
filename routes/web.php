@@ -11,7 +11,7 @@ use App\Models\Exercise;
 
 /*
 |--------------------------------------------------------------------------
-| 1. مسارات الموقع الأساسية
+| 1. مسارات الموقع الأساسية (مع كافة توجيهات الواجهة لمنع أي خطأ 500)
 |--------------------------------------------------------------------------
 */
 
@@ -20,21 +20,27 @@ Route::get('/', function () {
 });
 
 Route::get('/dashboard', function () {
-    return view('dashboard');
+    $completedExercises = auth()->check() ? CompletedExercise::where('user_id', auth()->id())->latest()->take(10)->get() : collect();
+    return view('dashboard', compact('completedExercises'));
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-// حل جذري نهائي: تعريف مسار profile.edit مباشرة ليتجاهل أي خطأ في القائمة القديمة
+// إغلاق ثغرة تصدير السجل
+Route::get('/export-log', function () {
+    return back();
+})->middleware(['auth'])->name('export.log');
+
+// إغلاق ثغرات الملف الشخصي (Profile) بالكامل لتتوافق مع القائمة العلوية
 Route::get('/profile', function () {
     return redirect()->route('dashboard');
 })->middleware(['auth'])->name('profile.edit');
 
 Route::patch('/profile', function () {
     return redirect()->route('dashboard');
-})->middleware(['auth']);
+})->middleware(['auth'])->name('profile.update');
 
 Route::delete('/profile', function () {
     return redirect()->route('dashboard');
-})->middleware(['auth']);
+})->middleware(['auth'])->name('profile.destroy');
 
 // مسار تغيير اللغة
 Route::get('/lang/{locale}', function ($locale) {
