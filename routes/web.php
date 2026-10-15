@@ -7,10 +7,7 @@ use Illuminate\Support\Facades\Artisan;
 use App\Services\TelegramService;
 use App\Models\User;
 
-// ==========================================
-// 1. مسارات موقعك الأساسية
-// (الصق هنا الكود الذي نسخته من نسخة 2 days ago)
-// ==========================================
+// مسارات موقعك الأساسية
 Route::get('/', function () {
     return view('welcome');
 });
@@ -23,9 +20,7 @@ if (file_exists(__DIR__ . '/auth.php')) {
     require __DIR__ . '/auth.php';
 }
 
-// ==========================================
-// 2. مسارات البوت القديمة (كما طلبتها أنت)
-// ==========================================
+// مسار تيليجرام
 Route::post('/telegram/webhook', function (Request $request, TelegramService $telegram) {
     $update = $request->all();
 
