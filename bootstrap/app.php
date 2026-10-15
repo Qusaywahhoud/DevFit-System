@@ -3,7 +3,6 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use App\Http\Middleware\SetLocale;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -12,14 +11,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        // استثناء تيليجرام من حماية CSRF
-        $middleware->validateCsrfTokens(except: [
-            'telegram/webhook',
-        ]);
-
-        // إضافة SetLocale لمجموعة الـ web لتعمل اللغة في كل طلب
+        // تفعيل الـ Middleware الخاص باللغة ليعمل بقوة على كل واجهات الموقع
         $middleware->web(append: [
-            SetLocale::class,
+            \App\Http\Middleware\SetLocale::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

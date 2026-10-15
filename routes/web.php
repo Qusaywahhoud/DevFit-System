@@ -6,56 +6,48 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\App;
-use App\Http\Middleware\SetLocale;
 use App\Services\TelegramService;
 use App\Models\User;
 use App\Models\CompletedExercise;
 use App\Models\Exercise;
 
-// استدعاء الـ Middleware بطريقة لارافيل الصحيحة (عبر اسم الكلاس)
-Route::middleware([SetLocale::class])->group(function () {
+Route::get('/', function () {
+    return redirect()->route('dashboard');
+})->name('exercises.index');
 
-    // مسار رئيسي يعيد التوجيه
-    Route::get('/', function () {
+Route::get('/dashboard', function () {
+    $userId = Auth::id();
+    $completedExercises = $userId ? CompletedExercise::where('user_id', $userId)->latest()->take(10)->get() : collect();
+    return view('dashboard', compact('completedExercises'));
+})->middleware(['auth', 'verified'])->name('dashboard');
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/export-log', function () {
+        return back();
+    })->name('export.log');
+    Route::get('/profile', function () {
         return redirect()->route('dashboard');
-    })->name('exercises.index');
-
-    // لوحة التحكم
-    Route::get('/dashboard', function () {
-        $userId = Auth::id();
-        $completedExercises = $userId ? CompletedExercise::where('user_id', $userId)->latest()->take(10)->get() : collect();
-        return view('dashboard', compact('completedExercises'));
-    })->middleware(['auth', 'verified'])->name('dashboard');
-
-    // مسارات الملف الشخصي
-    Route::middleware(['auth'])->group(function () {
-        Route::get('/export-log', function () {
-            return back();
-        })->name('export.log');
-        Route::get('/profile', function () {
-            return redirect()->route('dashboard');
-        })->name('profile.edit');
-        Route::patch('/profile', function () {
-            return redirect()->route('dashboard');
-        })->name('profile.update');
-        Route::delete('/profile', function () {
-            return redirect()->route('dashboard');
-        })->name('profile.destroy');
-    });
-
-    // مسار تبديل اللغة
-    Route::get('/lang/{locale}', function ($locale) {
-        if (in_array($locale, ['en', 'ar'])) {
-            $cookie = cookie('app_locale', $locale, 525600);
-            return redirect()->route('dashboard')->withCookie($cookie);
-        }
+    })->name('profile.edit');
+    Route::patch('/profile', function () {
         return redirect()->route('dashboard');
-    })->name('lang.switch');
+    })->name('profile.update');
+    Route::delete('/profile', function () {
+        return redirect()->route('dashboard');
+    })->name('profile.destroy');
+});
 
-    if (file_exists(__DIR__ . '/auth.php')) {
-        require __DIR__ . '/auth.php';
+// مسار تبديل اللغة
+Route::get('/lang/{locale}', function ($locale) {
+    if (in_array($locale, ['en', 'ar'])) {
+        session(['locale' => $locale]); // حفظ احتياطي
+        return redirect()->back()->withCookie(cookie()->forever('app_locale', $locale));
     }
-}); // إغلاق مجموعة اللغة
+    return redirect()->back();
+})->name('lang.switch');
+
+if (file_exists(__DIR__ . '/auth.php')) {
+    require __DIR__ . '/auth.php';
+}
 
 // --- مسارات تيليجرام ---
 
