@@ -35,11 +35,11 @@ Route::get('/lang/{locale}', function ($locale) {
 // --- مسار تبديل الثيم (مماثل لتبديل اللغة تماماً) ---
 Route::get('/theme/{mode}', function ($mode) {
     if (in_array($mode, ['light', 'dark'])) {
-        \Illuminate\Support\Facades\Cookie::queue('app_theme', $mode, 525600);
+        // إنشاء الرد مع حفظ الكوكي بمدة سنة كاملة
+        return redirect()->back()->cookie('app_theme', $mode, 525600);
     }
     return redirect()->back();
 })->name('theme.switch');
-
 // --- مسارات الملف الشخصي ولوحة التحكم ---
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
