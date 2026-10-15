@@ -43,8 +43,8 @@ Route::middleware(['auth'])->group(function () {
 
 Route::get('/lang/{locale}', function ($locale) {
     if (in_array($locale, ['en', 'ar'])) {
-        session(['locale' => $locale]);
-        app()->setLocale($locale);
+        // تخزين اللغة في Cookie لمدة سنة كاملة وتوجيه الصفحة
+        return redirect()->back()->cookie('locale', $locale, 525600);
     }
     return redirect()->back();
 })->name('lang.switch');
