@@ -26,7 +26,6 @@ jobs:
         with:
           context: .
           push: true
-          no-cache: true
           tags: |
             ghcr.io/qusaywahhoud/devfit-system:latest
-            ghcr.io/qusaywahhoud/devfit-system:v1.0.2
+            ghcr.io/qusaywahhoud/devfit-system:v1.0.3

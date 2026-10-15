@@ -21,7 +21,6 @@ WORKDIR /app
 COPY . .
 COPY --from=assets /app/public/build ./public/build
 
-# مسح أي ملفات كاش منسوخة من الجهاز قبل التثبيت
 RUN rm -rf bootstrap/cache/*.php storage/framework/views/*.php
 
 RUN composer install --no-dev --optimize-autoloader
@@ -32,9 +31,9 @@ RUN if [ -f start.sh ]; then sed -i 's/\r$//' start.sh && chmod +x start.sh; fi
 
 ENV APP_NAME=DevFit \
     APP_ENV=production \
-    APP_DEBUG=false \
+    APP_DEBUG=true \
     DB_CONNECTION=pgsql
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "php artisan optimize:clear && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8000"]
+CMD ["sh", "-c", "php artisan optimize:clear; php artisan migrate --force; php artisan serve --host=0.0.0.0 --port=8000"]
