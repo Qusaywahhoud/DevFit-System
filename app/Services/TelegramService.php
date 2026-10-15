@@ -13,17 +13,24 @@ class TelegramService
         $this->token = config('services.telegram.token') ?? env('TELEGRAM_BOT_TOKEN');
     }
 
-    public function sendMessage($chatId, $message)
+   public function sendMessage($chatId, $message, $replyMarkup = null)
     {
         $url = "https://api.telegram.org/bot{$this->token}/sendMessage";
 
-        return Http::withoutVerifying()->post($url, [
+        $payload = [
             'chat_id' => $chatId,
             'text' => $message,
             'parse_mode' => 'Markdown',
-        ]);
-    }
+        ];
 
+        // إذا تم إرسال أزرار، قم بدمجها مع الرسالة
+        if ($replyMarkup) {
+            $payload['reply_markup'] = $replyMarkup;
+        }
+
+        return \Illuminate\Support\Facades\Http::withoutVerifying()->post($url, $payload);
+    }
+    
     public function getUpdates($offset = null)
     {
         $url = "https://api.telegram.org/bot{$this->token}/getUpdates";

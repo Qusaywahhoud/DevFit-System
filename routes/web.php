@@ -1,17 +1,45 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Artisan;
 use App\Services\TelegramService;
 use App\Models\User;
+use App\Models\CompletedExercise;
+use App\Models\Exercise;
 
-// 1. مسار استقبال بيانات المستخدم من تيليجرام (Webhook)
+// 1. مسار استقبال بيانات المستخدم من تيليجرام (Webhook) التفاعلي
 Route::post('/telegram/webhook', function (Request $request, TelegramService $telegram) {
 $update = $request->all();
 
+// أ. معالجة الضغط على الأزرار (عندما يضغط المستخدم "أتممت التمرين")
+if (isset($update['callback_query'])) {
+$chatId = $update['callback_query']['message']['chat']['id'];
+$data = $update['callback_query']['data']; // مثلا: complete_5
+
+$user = User::where('telegram_chat_id', $chatId)->first();
+
+if ($user && str_starts_with($data, 'complete_')) {
+$exerciseId = str_replace('complete_', '', $data);
+$exercise = Exercise::find($exerciseId);
+
+if ($exercise) {
+CompletedExercise::create([
+'user_id' => $user->id,
+'exercise_id' => $exercise->id,
+'exercise_title' => $exercise->title_ar ?? 'تمرين',
+]);
+
+$telegram->sendMessage($chatId, "أحسنت يا بطل! 🥇\nتم تسجيل تمرين *{$exercise->title_ar}* في سجل إنجازاتك بنجاح.");
+}
+}
+return response()->json(['status' => 'success']);
+}
+
+// ب. معالجة الرسائل النصية والأوامر
 if (isset($update['message']['text'])) {
 $chatId = $update['message']['chat']['id'];
 $text = $update['message']['text'];
 
-// إذا ضغط المستخدم على زر الربط في موقعك
+// إذا كان المستخدم قادماً من رابط الربط
 if (str_starts_with($text, '/start ')) {
 $userId = str_replace('/start ', '', $text);
 $user = User::find($userId);
@@ -19,24 +47,61 @@ $user = User::find($userId);
 if ($user) {
 $user->telegram_chat_id = $chatId;
 $user->save();
-
-$reply = "أهلاً بك يا {$user->name}! 🎉\n\nتم ربط حسابك في DevFit بنجاح. ستصلك التمارين هنا.";
-} else {
-$reply = "عذراً، لم أتمكن من العثور على حسابك.";
+$telegram->sendMessage($chatId, "أهلاً بك يا {$user->name}! 🎉\n\nتم ربط حسابك في DevFit بنجاح. أنا الآن مدربك الشخصي هنا! 💪");
 }
-} else {
-$reply = "مرحباً! لربط حسابك، يرجى الضغط على زر تيليجرام من داخل لوحة تحكم موقع DevFit.";
+return response()->json(['status' => 'success']);
 }
 
+// التحقق من أن المستخدم مربوط أصلاً
+$user = User::where('telegram_chat_id', $chatId)->first();
+if (!$user) {
+$telegram->sendMessage($chatId, "مرحباً! لربط حسابك، يرجى الضغط على زر تيليجرام من داخل لوحة تحكم موقع DevFit.");
+return response()->json(['status' => 'success']);
+}
+
+// تحليل رسائل وأوامر المستخدم المربوط
+if ($text === '/stats') {
+$count = CompletedExercise::where('user_id', $user->id)->count();
+$telegram->sendMessage($chatId, "📊 *إحصائياتك يا {$user->name}:*\n\n🏆 إجمالي التمارين المنجزة: *{$count}*\nاستمر يا بطل ولا تتوقف! 🔥");
+
+} elseif ($text === '/exercise' || str_contains($text, 'جاهز') || str_contains($text, 'نشيط')) {
+$exercise = Exercise::inRandomOrder()->first();
+if ($exercise) {
+$reply = "🔥 *أعجبني حماسك! إليك هذا التمرين:* \n\n📌 *{$exercise->title_ar}*\n📝 {$exercise->description_ar}\n⏱️ *المدة:* {$exercise->duration_seconds} ثانية";
+
+$keyboard = [
+'inline_keyboard' => [
+[ ['text' => '✅ أتممت التمرين', 'callback_data' => 'complete_' . $exercise->id] ]
+]
+];
+$telegram->sendMessage($chatId, $reply, json_encode($keyboard));
+}
+
+} elseif (str_contains($text, 'تعبت') || str_contains($text, 'مرهق') || str_contains($text, 'مصدع')) {
+$exercise = Exercise::orderBy('duration_seconds', 'asc')->first();
+if ($exercise) {
+$reply = "خذ نفساً عميقاً 🧘‍♂️ صحتك أولاً. \n*إليك تمرين استرخاء خفيف جداً لا يتطلب مجهوداً:*\n\n📌 *{$exercise->title_ar}*\n📝 {$exercise->description_ar}";
+
+$keyboard = [
+'inline_keyboard' => [
+[ ['text' => '✅ أتممت بسلام', 'callback_data' => 'complete_' . $exercise->id] ]
+]
+];
+$telegram->sendMessage($chatId, $reply, json_encode($keyboard));
+}
+
+} else {
+$reply = "أهلاً بك في DevFit 🤖\n\nإليك الأوامر المتاحة:\n🏋️‍♂️ /exercise - اطلب تمريناً الآن\n📊 /stats - عرض إحصائياتك المنجزة\n\n💡 *نصيحة:* يمكنك ببساطة كتابة حالتك المزاجية (مثلاً: جاهز، تعبت، مرهق) وسأختار لك ما يناسبك!";
 $telegram->sendMessage($chatId, $reply);
 }
+}
+
 return response()->json(['status' => 'success']);
 });
 
-// 2. مسار تفعيل الـ Webhook (سنزوره مرة واحدة فقط لربط الموقع بتيليجرام)
+// 2. مسار تفعيل الـ Webhook
 Route::get('/set-telegram-webhook', function () {
 $token = env('TELEGRAM_BOT_TOKEN');
-// استخدمنا secure_url لضمان أن الرابط يبدأ بـ https كما يفرض تيليجرام
 $url = secure_url('/telegram/webhook');
 
 $response = Http::post("https://api.telegram.org/bot{$token}/setWebhook", [
@@ -46,9 +111,7 @@ $response = Http::post("https://api.telegram.org/bot{$token}/setWebhook", [
 return $response->json();
 });
 
-use Illuminate\Support\Facades\Artisan;
-
-// مسار سري لتشغيل المجدول (لا تعطِ هذا الرابط لأحد)
+// مسار سري لتشغيل المجدول
 Route::get('/secret-cron-runner-devfit', function () {
 Artisan::call('schedule:run');
 return response()->json(['status' => 'success', 'message' => 'Scheduler executed!']);
