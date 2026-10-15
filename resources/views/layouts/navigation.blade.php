@@ -21,17 +21,11 @@
             <!-- Settings Dropdown & Language Switcher (Desktop) -->
             <div class="hidden sm:flex sm:items-center sm:ms-6 gap-3">
 
-                <!-- زر تبديل اللغة -->
+                <!-- زر تبديل اللغة الفوري -->
                 <div class="flex items-center">
-                    @if(app()->getLocale() == 'ar')
-                        <a href="{{ route('lang.switch', 'en') }}" class="text-xs font-bold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-blue-600 hover:text-white px-3 py-2 rounded-xl transition shadow-sm">
-                            English 🇬🇧
-                        </a>
-                    @else
-                        <a href="{{ route('lang.switch', 'ar') }}" class="text-xs font-bold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-blue-600 hover:text-white px-3 py-2 rounded-xl transition shadow-sm">
-                            العربية 🇸🇾
-                        </a>
-                    @endif
+                    <button @click="lang = (lang === 'ar' ? 'en' : 'ar')" class="text-xs font-bold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-blue-600 hover:text-white px-3 py-2 rounded-xl transition shadow-sm">
+                        <span x-text="lang === 'ar' ? 'English 🇬🇧' : 'العربية 🇸🇾'"></span>
+                    </button>
                 </div>
 
                 <x-dropdown align="right" width="48">
@@ -87,17 +81,11 @@
                     <div class="font-medium text-base text-gray-800 dark:text-gray-200">{{ Auth::user()->name }}</div>
                     <div class="font-medium text-sm text-gray-500 dark:text-gray-400">{{ Auth::user()->email }}</div>
                 </div>
-                <!-- زر اللغة للجوال -->
+                <!-- زر اللغة للجوال الفوري -->
                 <div>
-                    @if(app()->getLocale() == 'ar')
-                        <a href="{{ route('lang.switch', 'en') }}" class="text-xs font-bold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-3 py-1.5 rounded-lg shadow-sm">
-                            English 🇬🇧
-                        </a>
-                    @else
-                        <a href="{{ route('lang.switch', 'ar') }}" class="text-xs font-bold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-3 py-1.5 rounded-lg shadow-sm">
-                            العربية 🇸🇾
-                        </a>
-                    @endif
+                    <button @click="lang = (lang === 'ar' ? 'en' : 'ar')" class="text-xs font-bold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-3 py-1.5 rounded-lg shadow-sm">
+                        <span x-text="lang === 'ar' ? 'English 🇬🇧' : 'العربية 🇸🇾'"></span>
+                    </button>
                 </div>
             </div>
 
