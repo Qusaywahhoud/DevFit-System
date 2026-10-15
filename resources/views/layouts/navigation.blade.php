@@ -18,10 +18,26 @@
                 </div>
             </div>
 
-            <!-- Settings Dropdown & Language Switcher (Desktop) -->
+            <!-- Settings Dropdown, Theme Switcher & Language Switcher (Desktop) -->
             <div class="hidden sm:flex sm:items-center sm:ms-6 gap-3">
 
-                <!-- زر تبديل اللغة (تم تحويله لرابط حقيقي يتصل بالسيرفر) -->
+                <!-- زر تبديل الثيم (الليلي / الصباحي) -->
+                <div class="flex items-center">
+                    @php
+                        $currentTheme = request()->cookie('app_theme', 'light');
+                    @endphp
+                    @if($currentTheme == 'dark')
+                        <a href="{{ route('theme.switch', 'light') }}" class="text-xs font-bold bg-gray-100 dark:bg-gray-800 text-yellow-500 hover:bg-yellow-500 hover:text-white px-3 py-2 rounded-xl transition shadow-sm" title="التحويل للوضع الصباحي">
+                            ☀️ الصباح
+                        </a>
+                    @else
+                        <a href="{{ route('theme.switch', 'dark') }}" class="text-xs font-bold bg-gray-100 dark:bg-gray-800 text-indigo-600 hover:bg-indigo-600 hover:text-white px-3 py-2 rounded-xl transition shadow-sm" title="التحويل للوضع الليلي">
+                            🌙 الليل
+                        </a>
+                    @endif
+                </div>
+
+                <!-- زر تبديل اللغة -->
                 <div class="flex items-center">
                     @if(app()->getLocale() == 'ar')
                         <a href="{{ route('lang.switch', 'en') }}" class="text-xs font-bold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-blue-600 hover:text-white px-3 py-2 rounded-xl transition shadow-sm">
@@ -52,7 +68,7 @@
                             @csrf
                             <x-dropdown-link :href="route('logout')"
                                     onclick="event.preventDefault();
-                                                this.closest('form').submit();">
+                                            this.closest('form').submit();">
                                 {{ __('Log Out') }}
                             </x-dropdown-link>
                         </form>
@@ -80,15 +96,29 @@
             </x-responsive-nav-link>
         </div>
 
-        <!-- Responsive Settings Options & Language Switcher -->
+        <!-- Responsive Settings Options, Theme Switcher & Language Switcher -->
         <div class="pt-4 pb-1 border-t border-gray-200 dark:border-gray-800">
             <div class="px-4 flex items-center justify-between">
                 <div>
                     <div class="font-medium text-base text-gray-800 dark:text-gray-200">{{ Auth::user()->name }}</div>
                     <div class="font-medium text-sm text-gray-500 dark:text-gray-400">{{ Auth::user()->email }}</div>
                 </div>
-                <!-- زر اللغة للجوال (تم تحويله لرابط حقيقي يتصل بالسيرفر) -->
-                <div>
+
+                <!-- أزرار الثيم واللغة للجوال -->
+                <div class="flex items-center gap-2">
+                    @php
+                        $currentTheme = request()->cookie('app_theme', 'light');
+                    @endphp
+                    @if($currentTheme == 'dark')
+                        <a href="{{ route('theme.switch', 'light') }}" class="text-xs font-bold bg-gray-100 dark:bg-gray-800 text-yellow-500 px-3 py-1.5 rounded-lg shadow-sm">
+                            ☀️
+                        </a>
+                    @else
+                        <a href="{{ route('theme.switch', 'dark') }}" class="text-xs font-bold bg-gray-100 dark:bg-gray-800 text-indigo-600 px-3 py-1.5 rounded-lg shadow-sm">
+                            🌙
+                        </a>
+                    @endif
+
                     @if(app()->getLocale() == 'ar')
                         <a href="{{ route('lang.switch', 'en') }}" class="text-xs font-bold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-3 py-1.5 rounded-lg shadow-sm">
                             English 🇬🇧
@@ -108,7 +138,7 @@
 
                     <x-responsive-nav-link :href="route('logout')"
                             onclick="event.preventDefault();
-                                        this.closest('form').submit();" class="text-gray-800 dark:text-gray-200">
+                                    this.closest('form').submit();" class="text-gray-800 dark:text-gray-200">
                         {{ __('Log Out') }}
                     </x-responsive-nav-link>
                 </form>
