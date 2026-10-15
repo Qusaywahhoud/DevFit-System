@@ -43,6 +43,7 @@ Route::middleware(['auth'])->group(function () {
 Route::get('/lang/{locale}', function ($locale) {
     if (in_array($locale, ['en', 'ar'])) {
         session()->put('locale', $locale);
+        app()->setLocale($locale); // التطبيق الفوري للغة
     }
     return redirect()->back();
 })->name('lang.switch');
