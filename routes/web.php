@@ -6,17 +6,14 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\App;
+use App\Http\Middleware\SetLocale;
 use App\Services\TelegramService;
 use App\Models\User;
 use App\Models\CompletedExercise;
 use App\Models\Exercise;
 
-// 1. تطبيق اللغة مباشرة هنا كـ Middleware داخلي يغلف كل الموقع (يضمن التنفيذ 100%)
-Route::middleware(function (Request $request, $next) {
-    $locale = $request->cookie('app_locale', 'ar');
-    App::setLocale(in_array($locale, ['ar', 'en']) ? $locale : 'ar');
-    return $next($request);
-})->group(function () {
+// استدعاء الـ Middleware بطريقة لارافيل الصحيحة (عبر اسم الكلاس)
+Route::middleware([SetLocale::class])->group(function () {
 
     // مسار رئيسي يعيد التوجيه
     Route::get('/', function () {
@@ -46,10 +43,10 @@ Route::middleware(function (Request $request, $next) {
         })->name('profile.destroy');
     });
 
-    // 2. مسار تبديل اللغة (يقوم بتخزين الكوكي وتوجيه آمن للوحة التحكم)
+    // مسار تبديل اللغة
     Route::get('/lang/{locale}', function ($locale) {
         if (in_array($locale, ['en', 'ar'])) {
-            $cookie = cookie('app_locale', $locale, 525600); // سنة كاملة
+            $cookie = cookie('app_locale', $locale, 525600);
             return redirect()->route('dashboard')->withCookie($cookie);
         }
         return redirect()->route('dashboard');
@@ -60,7 +57,7 @@ Route::middleware(function (Request $request, $next) {
     }
 }); // إغلاق مجموعة اللغة
 
-// --- مسارات تيليجرام (تبقى خارج مجموعة اللغة لكي لا تتعطل الـ Webhooks) ---
+// --- مسارات تيليجرام ---
 
 Route::post('/telegram/webhook', function (Request $request, TelegramService $telegram) {
     $update = $request->all();
