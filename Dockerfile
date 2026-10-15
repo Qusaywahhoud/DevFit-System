@@ -1,4 +1,4 @@
-# ---------- Stage 1: build frontend assets ----------
+﻿# ---------- Stage 1: build frontend assets ----------
 FROM node:20-alpine AS assets
 WORKDIR /app
 COPY package*.json ./
@@ -21,12 +21,14 @@ WORKDIR /app
 COPY . .
 COPY --from=assets /app/public/build ./public/build
 
+# مسح أي ملفات كاش منسوخة من الجهاز قبل التثبيت
+RUN rm -rf bootstrap/cache/*.php storage/framework/views/*.php
+
 RUN composer install --no-dev --optimize-autoloader
 
 RUN chown -R www-data:www-data storage bootstrap/cache
 
-# التأكد من إزالة أي نهايات أسطر Windows (CRLF) من ملف التشغيل
-RUN sed -i 's/\r$//' start.sh
+RUN if [ -f start.sh ]; then sed -i 's/\r$//' start.sh && chmod +x start.sh; fi
 
 ENV APP_NAME=DevFit \
     APP_ENV=production \
@@ -35,5 +37,4 @@ ENV APP_NAME=DevFit \
 
 EXPOSE 8000
 
-# تشغيل ملف السكربت كأمر افتراضي
-CMD ["sh", "-c", "php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8000"]
+CMD ["sh", "-c", "php artisan optimize:clear && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8000"]
