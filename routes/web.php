@@ -1,41 +1,45 @@
-<?php
+﻿<?php
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\ExerciseController;
+use App\Http\Controllers\ProfileController;
 use App\Services\TelegramService;
 use App\Models\User;
 use App\Models\CompletedExercise;
 use App\Models\Exercise;
 
-Route::get('/', function () {
-    return redirect()->route('dashboard');
-});
+// 1. إقلاع الموقع مباشرة على صفحة التمارين الرئيسية
+Route::get('/', [ExerciseController::class, 'index'])->name('exercises.index');
 
+// 2. لوحة التحكم والإحصائيات
 Route::get('/dashboard', function () {
     $userId = Auth::id();
     $completedExercises = $userId ? CompletedExercise::where('user_id', $userId)->latest()->take(10)->get() : collect();
     return view('dashboard', compact('completedExercises'));
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-Route::get('/export-log', function () {
-    return back();
-})->middleware(['auth'])->name('export.log');
+// 3. مسارات التمارين (إنهاء تمرين، تصدير Excel، إضافة، تعديل، حذف)
+Route::post('/complete-exercise', [ExerciseController::class, 'completeExercise'])->name('exercises.complete');
+Route::get('/export-log', [ExerciseController::class, 'exportCsv'])->middleware(['auth'])->name('export.log');
 
-Route::get('/profile', function () {
-    return redirect()->route('dashboard');
-})->middleware(['auth'])->name('profile.edit');
+Route::middleware(['auth'])->group(function () {
+    Route::get('/create', [ExerciseController::class, 'create'])->name('exercises.create');
+    Route::post('/exercises', [ExerciseController::class, 'store'])->name('exercises.store');
+    Route::get('/exercises/{id}/edit', [ExerciseController::class, 'edit'])->name('exercises.edit');
+    Route::put('/exercises/{id}', [ExerciseController::class, 'update'])->name('exercises.update');
+    Route::delete('/exercises/{id}', [ExerciseController::class, 'destroy'])->name('exercises.destroy');
 
-Route::patch('/profile', function () {
-    return redirect()->route('dashboard');
-})->middleware(['auth'])->name('profile.update');
+    // 4. مسارات الملف الشخصي (ProfileController)
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+});
 
-Route::delete('/profile', function () {
-    return redirect()->route('dashboard');
-})->middleware(['auth'])->name('profile.destroy');
-
+// 5. تبديل اللغة (العربية / الإنجليزية)
 Route::get('/lang/{locale}', function ($locale) {
     if (in_array($locale, ['en', 'ar'])) {
         session()->put('locale', $locale);
@@ -47,6 +51,7 @@ if (file_exists(__DIR__ . '/auth.php')) {
     require __DIR__ . '/auth.php';
 }
 
+// 6. مسار Webhook بوت التيليجرام
 Route::post('/telegram/webhook', function (Request $request, TelegramService $telegram) {
     $update = $request->all();
 
@@ -60,12 +65,13 @@ Route::post('/telegram/webhook', function (Request $request, TelegramService $te
             $exercise = Exercise::find($exerciseId);
 
             if ($exercise) {
+                $title = $exercise->title_ar ?? $exercise->title ?? 'تمرين';
                 CompletedExercise::create([
                     'user_id' => $user->id,
                     'exercise_id' => $exercise->id,
-                    'exercise_title' => $exercise->title_ar ?? 'تمرين',
+                    'exercise_title' => $title,
                 ]);
-                $telegram->sendMessage($chatId, "أحسنت يا بطل! 🥇\nتم تسجيل تمرين *{$exercise->title_ar}* في سجل إنجازاتك بنجاح.");
+                $telegram->sendMessage($chatId, "أحسنت يا بطل! 🥇\nتم تسجيل تمرين *{$title}* في سجل إنجازاتك بنجاح.");
             }
         }
         return response()->json(['status' => 'success']);
