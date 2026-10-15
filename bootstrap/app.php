@@ -11,9 +11,14 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        // تفعيل الـ Middleware الخاص باللغة ليعمل بقوة على كل واجهات الموقع
+        // تفعيل الـ Middleware الخاص باللغة
         $middleware->web(append: [
             \App\Http\Middleware\SetLocale::class,
+        ]);
+
+        // استثناء مسار تيليجرام من فحص CSRF لكي تعمل أزرار البوت
+        $middleware->validateCsrfTokens(except: [
+            'telegram/webhook',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

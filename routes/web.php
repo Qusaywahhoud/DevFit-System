@@ -4,53 +4,51 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\App;
+use App\Http\Controllers\ExerciseController;
+use App\Http\Controllers\ProfileController;
 use App\Services\TelegramService;
 use App\Models\User;
-use App\Models\CompletedExercise;
 use App\Models\Exercise;
+use App\Models\CompletedExercise;
 
-Route::get('/', function () {
-    return redirect()->route('dashboard');
-})->name('exercises.index');
+// --- مسارات الموقع الأساسية ---
+Route::get('/', [ExerciseController::class, 'index'])->name('exercises.index');
+Route::get('/export-log', [ExerciseController::class, 'exportCsv'])->name('export.log')->middleware('auth');
+Route::post('/complete-exercise', [ExerciseController::class, 'completeExercise'])->name('complete.exercise')->middleware('auth');
 
-Route::get('/dashboard', function () {
-    $userId = Auth::id();
-    $completedExercises = $userId ? CompletedExercise::where('user_id', $userId)->latest()->take(10)->get() : collect();
-    return view('dashboard', compact('completedExercises'));
-})->middleware(['auth', 'verified'])->name('dashboard');
-
-Route::middleware(['auth'])->group(function () {
-    Route::get('/export-log', function () {
-        return back();
-    })->name('export.log');
-    Route::get('/profile', function () {
-        return redirect()->route('dashboard');
-    })->name('profile.edit');
-    Route::patch('/profile', function () {
-        return redirect()->route('dashboard');
-    })->name('profile.update');
-    Route::delete('/profile', function () {
-        return redirect()->route('dashboard');
-    })->name('profile.destroy');
+Route::middleware(['auth', \App\Http\Middleware\IsAdmin::class])->group(function () {
+    Route::get('/create', [ExerciseController::class, 'create']);
+    Route::post('/exercises', [ExerciseController::class, 'store']);
+    Route::get('/exercises/{id}/edit', [ExerciseController::class, 'edit'])->name('exercises.edit');
+    Route::put('/exercises/{id}', [ExerciseController::class, 'update'])->name('exercises.update');
+    Route::delete('/exercises/{id}', [ExerciseController::class, 'destroy'])->name('exercises.destroy');
 });
 
-// مسار تبديل اللغة
+// --- مسار تبديل اللغة (Cookie Based) ---
 Route::get('/lang/{locale}', function ($locale) {
-    if (in_array($locale, ['en', 'ar'])) {
-        session(['locale' => $locale]); // حفظ احتياطي
-        return redirect()->back()->withCookie(cookie()->forever('app_locale', $locale));
+    if (in_array($locale, ['ar', 'en'])) {
+        // وضع الكوكي في طابور الردود لضمان إرساله للمتصفح 100%
+        \Illuminate\Support\Facades\Cookie::queue('app_locale', $locale, 525600);
     }
     return redirect()->back();
 })->name('lang.switch');
 
-if (file_exists(__DIR__ . '/auth.php')) {
-    require __DIR__ . '/auth.php';
-}
+// --- مسارات الملف الشخصي ولوحة التحكم ---
+Route::middleware('auth')->group(function () {
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+});
+
+Route::get('/dashboard', function () {
+    $userId = \Illuminate\Support\Facades\Auth::id();
+    $completedExercises = $userId ? CompletedExercise::where('user_id', $userId)->latest()->take(10)->get() : collect();
+    return view('dashboard', compact('completedExercises'));
+})->middleware(['auth', 'verified'])->name('dashboard');
+
+require __DIR__ . '/auth.php';
 
 // --- مسارات تيليجرام ---
-
 Route::post('/telegram/webhook', function (Request $request, TelegramService $telegram) {
     $update = $request->all();
 
@@ -70,7 +68,7 @@ Route::post('/telegram/webhook', function (Request $request, TelegramService $te
                     'exercise_id' => $exercise->id,
                     'exercise_title' => $title,
                 ]);
-                $telegram->sendMessage($chatId, "أحسنت يا بطل! 🥇\nتم تسجيل تمرين *{$title}* في سجل إنجازاتك بنجاح.");
+                $telegram->sendMessage($chatId, "أحسنت يا بطل! 🥇\nتم تسجيل تمرين *{$title}* بنجاح.");
             }
         }
         return response()->json(['status' => 'success']);
@@ -102,7 +100,7 @@ Route::post('/telegram/webhook', function (Request $request, TelegramService $te
             $count = CompletedExercise::where('user_id', $user->id)->count();
             $telegram->sendMessage($chatId, "📊 إجمالي التمارين المنجزة: *{$count}*");
         } else {
-            $telegram->sendMessage($chatId, "أهلاً بك في DevFit 🤖\nاستخدم /exercise أو /stats");
+            $telegram->sendMessage($chatId, "أهلاً بك في DevFit 🤖\nاستخدم /stats لرؤية إحصائياتك.");
         }
     }
 
@@ -114,9 +112,4 @@ Route::get('/set-telegram-webhook', function () {
     $url = secure_url('/telegram/webhook');
     $response = Http::post("https://api.telegram.org/bot{$token}/setWebhook", ['url' => $url]);
     return $response->json();
-});
-
-Route::get('/secret-cron-runner-devfit', function () {
-    Artisan::call('schedule:run');
-    return response()->json(['status' => 'success', 'message' => 'Scheduler executed!']);
 });
