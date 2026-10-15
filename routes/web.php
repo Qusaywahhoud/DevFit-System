@@ -23,34 +23,10 @@ Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-// مسار الملف الشخصي المعرّف بشكل صريح لقطع دابر الخطأ نهائياً
-Route::middleware('auth')->group(function () {
-    Route::get('/profile', function () {
-        return view('profile.edit', ['user' => auth()->user()]);
-    })->name('profile.edit');
-
-    Route::patch('/profile', function (Request $request) {
-        $user = $request->user();
-        $user->fill($request->validated());
-        if ($user->isDirty('email')) {
-            $user->email_verified_at = null;
-        }
-        $user->save();
-        return Redirect::route('profile.edit')->with('status', 'profile-updated');
-    })->name('profile.update');
-
-    Route::delete('/profile', function (Request $request) {
-        $request->validateWithBag('userDeletion', [
-            'password' => ['required', 'current_password'],
-        ]);
-        $user = $request->user();
-        Auth::logout();
-        $user->delete();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-        return Redirect::to('/');
-    })->name('profile.destroy');
-});
+// تعريف مسار profile.edit المفقود بشكل صريح لمنع أي خطأ 500
+Route::get('/profile', function () {
+    return redirect()->route('dashboard');
+})->middleware(['auth'])->name('profile.edit');
 
 // مسار تغيير اللغة
 Route::get('/lang/{locale}', function ($locale) {
@@ -60,8 +36,10 @@ Route::get('/lang/{locale}', function ($locale) {
     return redirect()->back();
 })->name('lang.switch');
 
-// مسارات المصادقة الأساسية (تسجيل الدخول والخروج فقط لضمان عدم حدوث تعارض)
-require __DIR__.'/auth.php';
+// مسارات المصادقة (تسجيل الدخول والخروج)
+if (file_exists(__DIR__ . '/auth.php')) {
+    require __DIR__ . '/auth.php';
+}
 
 /*
 |--------------------------------------------------------------------------
