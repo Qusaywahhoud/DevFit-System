@@ -105,11 +105,11 @@ Route::post('/telegram/webhook', function (Request $request, TelegramService $te
             $telegram->sendMessage($chatId, "📊 إجمالي التمارين المنجزة: *{$count}*");
 
             // --- الأمر الجديد: عرض التمارين ---
-        } elseif ($text === '/exercises') {
+        } elseif (in_array($text, ['/exercise', '/exercises'])) {
             $exercises = Exercise::take(10)->get(); // جلب آخر 10 تمارين متاحة
 
             if ($exercises->isEmpty()) {
-                $telegram->sendMessage($chatId, "لا توجد تمارين متاحة حالياً. 😅");
+                $telegram->sendMessage($chatId, "أهلاً بك في DevFit 🤖\n\nقائمة الأوامر المتاحة:\n🏋️‍♂️ /exercises - عرض التمارين\n📊 /stats - إحصائياتك");
             } else {
                 $keyboard = [];
                 foreach ($exercises as $exercise) {
