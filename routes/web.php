@@ -140,3 +140,33 @@ Route::get('/set-telegram-webhook', function () {
     $response = Http::post("https://api.telegram.org/bot{$token}/setWebhook", ['url' => $url]);
     return $response->json();
 });
+
+use Illuminate\Support\Facades\Log;
+
+Route::get('/cron/send-reminders', function (Request $request, TelegramService $telegram) {
+    // 🛡️ حماية المسار برمز سري لمنع أي شخص من إرسال الرسائل عشوائياً
+    if ($request->query('key') !== 'DevFitSecretCron2026') {
+        return response()->json(['error' => 'Unauthorized'], 401);
+    }
+
+    // جلب جميع المستخدمين الذين لديهم معرف تيليجرام مرتبط
+    $users = User::whereNotNull('telegram_chat_id')->get();
+    $count = 0;
+
+    foreach ($users as $user) {
+        try {
+            $telegram->sendMessage(
+                $user->telegram_chat_id,
+                "🌅 صباح النشاط والحيوية يا {$user->name}!\n\nلا تنس تمرينك اليومي لتبقى في قمة لياقتك. أرسل الأمر /exercises لتسجيل تمرينك اليوم والتقدم نحو أهدافك! 💪🔥"
+            );
+            $count++;
+        } catch (\Exception $e) {
+
+            Log::error("Failed to send reminder to user {$user->id}: " . $e->getMessage());
+        }
+    }
+    return response()->json([
+        'status' => 'success',
+        'message' => "تم إرسال التذكيرات إلى {$count} مستخدم بنجاح."
+    ]);
+});
