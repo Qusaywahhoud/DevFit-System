@@ -43,8 +43,7 @@ Route::middleware(['auth'])->group(function () {
 
 Route::get('/lang/{locale}', function ($locale) {
     if (in_array($locale, ['en', 'ar'])) {
-        session()->put('locale', $locale);
-        session()->save(); // حفظ الجلسة إجبارياً
+        session(['locale' => $locale]);
         app()->setLocale($locale);
     }
     return redirect()->back();
