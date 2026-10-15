@@ -20,7 +20,7 @@
 
             <!-- Settings Dropdown & Language Switcher (Desktop) -->
             <div class="hidden sm:flex sm:items-center sm:ms-6 gap-3">
-                
+
                 <!-- زر تبديل اللغة -->
                 <div class="flex items-center">
                     @if(app()->getLocale() == 'ar')
@@ -48,10 +48,9 @@
                     </x-slot>
 
                     <x-slot name="content">
-                        <x-dropdown-link :href="route('profile.edit')">
-                            {{ __('Profile') }}
-                        </x-dropdown-link>
-
+                      <x-dropdown-link :href="url('/dashboard')">
+                             {{ __('Dashboard') }}
+                      </x-dropdown-link>
                         <!-- Authentication -->
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
