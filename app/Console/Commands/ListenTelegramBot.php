@@ -7,11 +7,10 @@ use Illuminate\Console\Command;
 class ListenTelegramBot extends Command
 {
     protected $signature = 'telegram:listen';
-    protected $description = 'Disabled in favor of Webhook';
 
     public function handle()
     {
-        $this->info('Listener disabled. We are using Webhooks now! 🚀');
+        // إرجاع 0 يعني إيقاف الأمر مباشرة بدون أي عملية اتصال
         return 0;
     }
 }
