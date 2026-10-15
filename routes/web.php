@@ -4,7 +4,6 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Artisan;
-use App\Http\Controllers\ProfileController;
 use App\Services\TelegramService;
 use App\Models\User;
 use App\Models\CompletedExercise;
@@ -12,11 +11,10 @@ use App\Models\Exercise;
 
 /*
 |--------------------------------------------------------------------------
-| 1. مسارات الموقع الأساسية (DevFit & Breeze)
+| 1. مسارات الموقع الأساسية
 |--------------------------------------------------------------------------
 */
 
-// التحويل المباشر للوحة التحكم
 Route::get('/', function () {
     return redirect()->route('dashboard');
 });
@@ -25,11 +23,33 @@ Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-// مسارات الملف الشخصي (الحل الجذري للخطأ)
+// مسار الملف الشخصي المعرّف بشكل صريح لقطع دابر الخطأ نهائياً
 Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::get('/profile', function () {
+        return view('profile.edit', ['user' => auth()->user()]);
+    })->name('profile.edit');
+
+    Route::patch('/profile', function (Request $request) {
+        $user = $request->user();
+        $user->fill($request->validated());
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = null;
+        }
+        $user->save();
+        return Redirect::route('profile.edit')->with('status', 'profile-updated');
+    })->name('profile.update');
+
+    Route::delete('/profile', function (Request $request) {
+        $request->validateWithBag('userDeletion', [
+            'password' => ['required', 'current_password'],
+        ]);
+        $user = $request->user();
+        Auth::logout();
+        $user->delete();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+        return Redirect::to('/');
+    })->name('profile.destroy');
 });
 
 // مسار تغيير اللغة
@@ -40,10 +60,8 @@ Route::get('/lang/{locale}', function ($locale) {
     return redirect()->back();
 })->name('lang.switch');
 
-// استدعاء مسارات المصادقة (تسجيل الدخول، الخروج، الخ)
-if (file_exists(__DIR__ . '/auth.php')) {
-    require __DIR__ . '/auth.php';
-}
+// مسارات المصادقة الأساسية (تسجيل الدخول والخروج فقط لضمان عدم حدوث تعارض)
+require __DIR__.'/auth.php';
 
 /*
 |--------------------------------------------------------------------------
@@ -102,6 +120,7 @@ Route::post('/telegram/webhook', function (Request $request, TelegramService $te
         if ($text === '/stats') {
             $count = CompletedExercise::where('user_id', $user->id)->count();
             $telegram->sendMessage($chatId, "📊 *إحصائياتك يا {$user->name}:*\n\n🏆 إجمالي التمارين المنجزة: *{$count}*\nاستمر يا بطل ولا تتوقف! 🔥");
+
         } elseif ($text === '/exercise' || str_contains($text, 'جاهز') || str_contains($text, 'نشيط')) {
             $exercise = Exercise::inRandomOrder()->first();
             if ($exercise) {
@@ -109,11 +128,12 @@ Route::post('/telegram/webhook', function (Request $request, TelegramService $te
 
                 $keyboard = [
                     'inline_keyboard' => [
-                        [['text' => '✅ أتممت التمرين', 'callback_data' => 'complete_' . $exercise->id]]
+                        [ ['text' => '✅ أتممت التمرين', 'callback_data' => 'complete_' . $exercise->id] ]
                     ]
                 ];
                 $telegram->sendMessage($chatId, $reply, json_encode($keyboard));
             }
+
         } elseif (str_contains($text, 'تعبت') || str_contains($text, 'مرهق') || str_contains($text, 'مصدع')) {
             $exercise = Exercise::orderBy('duration_seconds', 'asc')->first();
             if ($exercise) {
@@ -121,11 +141,12 @@ Route::post('/telegram/webhook', function (Request $request, TelegramService $te
 
                 $keyboard = [
                     'inline_keyboard' => [
-                        [['text' => '✅ أتممت بسلام', 'callback_data' => 'complete_' . $exercise->id]]
+                        [ ['text' => '✅ أتممت بسلام', 'callback_data' => 'complete_' . $exercise->id] ]
                     ]
                 ];
                 $telegram->sendMessage($chatId, $reply, json_encode($keyboard));
             }
+
         } else {
             $reply = "أهلاً بك في DevFit 🤖\n\nإليك الأوامر المتاحة:\n🏋️‍♂️ /exercise - اطلب تمريناً الآن\n📊 /stats - عرض إحصائياتك المنجزة\n\n💡 *نصيحة:* يمكنك ببساطة كتابة حالتك المزاجية (مثلاً: جاهز، تعبت، مرهق) وسأختار لك ما يناسبك!";
             $telegram->sendMessage($chatId, $reply);
