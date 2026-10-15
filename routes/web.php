@@ -35,15 +35,8 @@ Route::get('/lang/{locale}', function ($locale) {
 // --- مسار تبديل الثيم (مماثل لتبديل اللغة تماماً) ---
 Route::get('/theme/{mode}', function ($mode) {
     if (in_array($mode, ['light', 'dark'])) {
-        // إذا كان المستخدم مسجل دخول، نحفظ الخيار في قاعدة البيانات فوراً
-        if (auth()->check()) {
-            $user = auth()->user();
-            $user->theme = $mode; // تأكد أن لديك عمود theme في جدول users أو استعمل جدول إعدادات
-            $user->save();
-        }
-
-        // ونحفظه أيضاً كبديل احتياطي عبر الـ Session لضمان السرعة
-        session(['app_theme' => $mode]);
+        // إنشاء الرد مع حفظ الكوكي بمدة سنة كاملة
+        return redirect()->back()->cookie('app_theme', $mode, 525600);
     }
     return redirect()->back();
 })->name('theme.switch');
