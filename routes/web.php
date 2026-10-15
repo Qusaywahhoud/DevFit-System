@@ -47,11 +47,11 @@ Route::get('/dashboard', function () {
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 require __DIR__ . '/auth.php';
-
 // --- مسارات تيليجرام ---
 Route::post('/telegram/webhook', function (Request $request, TelegramService $telegram) {
     $update = $request->all();
 
+    // 1. معالجة النقرات على الأزرار (Callback Queries)
     if (isset($update['callback_query'])) {
         $chatId = $update['callback_query']['message']['chat']['id'];
         $data = $update['callback_query']['data'];
@@ -68,16 +68,18 @@ Route::post('/telegram/webhook', function (Request $request, TelegramService $te
                     'exercise_id' => $exercise->id,
                     'exercise_title' => $title,
                 ]);
-                $telegram->sendMessage($chatId, "أحسنت يا بطل! 🥇\nتم تسجيل تمرين *{$title}* بنجاح.");
+                $telegram->sendMessage($chatId, "أحسنت يا بطل! 🥇\nتم تسجيل تمرين *{$title}* في سجل إنجازاتك بنجاح.");
             }
         }
         return response()->json(['status' => 'success']);
     }
 
+    // 2. معالجة الرسائل النصية والأوامر
     if (isset($update['message']['text'])) {
         $chatId = $update['message']['chat']['id'];
         $text = $update['message']['text'];
 
+        // أمر الربط الأولي
         if (str_starts_with($text, '/start ')) {
             $userId = str_replace('/start ', '', $text);
             $user = User::find($userId);
@@ -90,17 +92,47 @@ Route::post('/telegram/webhook', function (Request $request, TelegramService $te
             return response()->json(['status' => 'success']);
         }
 
+        // التحقق من أن المستخدم مربوط قبل السماح بأي أمر آخر
         $user = User::where('telegram_chat_id', $chatId)->first();
         if (!$user) {
             $telegram->sendMessage($chatId, "مرحباً! لربط حسابك، يرجى الضغط على زر تيليجرام من داخل لوحة تحكم موقع DevFit.");
             return response()->json(['status' => 'success']);
         }
 
+        // أمر الإحصائيات
         if ($text === '/stats') {
             $count = CompletedExercise::where('user_id', $user->id)->count();
             $telegram->sendMessage($chatId, "📊 إجمالي التمارين المنجزة: *{$count}*");
+
+            // --- الأمر الجديد: عرض التمارين ---
+        } elseif ($text === '/exercises') {
+            $exercises = Exercise::take(10)->get(); // جلب آخر 10 تمارين متاحة
+
+            if ($exercises->isEmpty()) {
+                $telegram->sendMessage($chatId, "لا توجد تمارين متاحة حالياً. 😅");
+            } else {
+                $keyboard = [];
+                foreach ($exercises as $exercise) {
+                    $title = $exercise->title_ar ?? $exercise->title ?? 'تمرين';
+                    // إنشاء زر تفاعلي لكل تمرين متاح
+                    $keyboard[] = [
+                        ['text' => "✅ إكمال: " . $title, 'callback_data' => 'complete_' . $exercise->id]
+                    ];
+                }
+
+                $token = config('services.telegram.bot_token', env('TELEGRAM_BOT_TOKEN'));
+                \Illuminate\Support\Facades\Http::post("https://api.telegram.org/bot{$token}/sendMessage", [
+                    'chat_id' => $chatId,
+                    'text' => "💪 تفضل قائمة التمارين المتاحة:\n(اضغط على الزر لتسجيل إنجازك فوراً)",
+                    'reply_markup' => json_encode([
+                        'inline_keyboard' => $keyboard
+                    ])
+                ]);
+            }
+
+            // رسالة الترحيب والرد الافتراضي
         } else {
-            $telegram->sendMessage($chatId, "أهلاً بك في DevFit 🤖\nاستخدم /stats لرؤية إحصائياتك.");
+            $telegram->sendMessage($chatId, "أهلاً بك في DevFit 🤖\n\nقائمة الأوامر المتاحة:\n🏋️‍♂️ /exercises - عرض التمارين المتاحة وتسجيل إنجازها\n📊 /stats - رؤية إجمالي إنجازاتك");
         }
     }
 
