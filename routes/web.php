@@ -17,7 +17,7 @@ use App\Models\Exercise;
 
 // تحويل الزائر فوراً إلى صفحة تسجيل الدخول بدلاً من واجهة لارافيل الافتراضية
 Route::get('/', function () {
-    return redirect()->route('login');
+    return redirect()->route('dashboard');
 });
 
 Route::get('/dashboard', function () {
