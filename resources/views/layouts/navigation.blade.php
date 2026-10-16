@@ -18,26 +18,10 @@
                 </div>
             </div>
 
-            <!-- Settings Dropdown, Theme Switcher & Language Switcher (Desktop) -->
+            <!-- Settings Dropdown & Language Switcher (Desktop) -->
             <div class="hidden sm:flex sm:items-center sm:ms-6 gap-3">
 
-                <!-- زر تبديل الثيم (الليلي / الصباحي) -->
-                <div class="flex items-center">
-                    @php
-                        $currentTheme = session('app_theme', 'light');
-                    @endphp
-                    @if($currentTheme == 'dark')
-                        <a href="{{ route('theme.switch', 'light') }}" class="text-xs font-bold bg-gray-100 dark:bg-gray-800 text-yellow-500 hover:bg-yellow-500 hover:text-white px-3 py-2 rounded-xl transition shadow-sm" title="التحويل للوضع الصباحي">
-                            ☀️ الصباح
-                        </a>
-                    @else
-                        <a href="{{ route('theme.switch', 'dark') }}" class="text-xs font-bold bg-gray-100 dark:bg-gray-800 text-indigo-600 hover:bg-indigo-600 hover:text-white px-3 py-2 rounded-xl transition shadow-sm" title="التحويل للوضع الليلي">
-                            🌙 الليل
-                        </a>
-                    @endif
-                </div>
-
-                <!-- زر تبديل اللغة -->
+                <!-- زر تبديل اللغة (بقي كما هو) -->
                 <div class="flex items-center">
                     @if(app()->getLocale() == 'ar')
                         <a href="{{ route('lang.switch', 'en') }}" class="text-xs font-bold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-blue-600 hover:text-white px-3 py-2 rounded-xl transition shadow-sm">
@@ -50,11 +34,11 @@
                     @endif
                 </div>
 
+                <!-- إعدادات الملف الشخصي (Dropdown) -->
                 <x-dropdown align="right" width="48">
                     <x-slot name="trigger">
                         <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 dark:text-gray-300 bg-white dark:bg-gray-900 hover:text-gray-700 dark:hover:text-gray-100 focus:outline-none transition ease-in-out duration-150">
                             <div>{{ Auth::user()->name }}</div>
-
                             <div class="ms-1">
                                 <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
@@ -63,13 +47,19 @@
                         </button>
                     </x-slot>
                     <x-slot name="content">
+                        <!-- زر الثيم الجديد (يعرض الصباحي إذا كنت في الليلي والعكس) -->
+                        @php $currentTheme = session('app_theme', 'light'); @endphp
+                        <x-dropdown-link :href="route('theme.switch', $currentTheme === 'dark' ? 'light' : 'dark')">
+                            {{ $currentTheme === 'dark' ? '☀️ ' . (app()->getLocale() == 'ar' ? 'الوضع الصباحي' : 'Light Mode') : '🌙 ' . (app()->getLocale() == 'ar' ? 'الوضع الليلي' : 'Dark Mode') }}
+                        </x-dropdown-link>
+
                         <!-- Authentication -->
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
                             <x-dropdown-link :href="route('logout')"
                                     onclick="event.preventDefault();
                                                 this.closest('form').submit();">
-                                {{ __('Log Out') }}
+                                {{ app()->getLocale() == 'ar' ? 'تسجيل الخروج' : 'Log Out' }}
                             </x-dropdown-link>
                         </form>
                     </x-slot>
@@ -88,7 +78,7 @@
         </div>
     </div>
 
-    <!-- Responsive Navigation Menu -->
+    <!-- Responsive Navigation Menu (Mobile) -->
     <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
         <div class="pt-2 pb-3 space-y-1">
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')" class="text-gray-800 dark:text-gray-200">
@@ -96,7 +86,7 @@
             </x-responsive-nav-link>
         </div>
 
-        <!-- Responsive Settings Options, Theme Switcher & Language Switcher -->
+        <!-- Responsive Settings Options -->
         <div class="pt-4 pb-1 border-t border-gray-200 dark:border-gray-800">
             <div class="px-4 flex items-center justify-between">
                 <div>
@@ -104,21 +94,8 @@
                     <div class="font-medium text-sm text-gray-500 dark:text-gray-400">{{ Auth::user()->email }}</div>
                 </div>
 
-                <!-- أزرار الثيم واللغة للجوال -->
+                <!-- Language Switcher (Mobile) -->
                 <div class="flex items-center gap-2">
-                    @php
-                        $currentTheme = session('app_theme', 'light');
-                    @endphp
-                    @if($currentTheme == 'dark')
-                        <a href="{{ route('theme.switch', 'light') }}" class="text-xs font-bold bg-gray-100 dark:bg-gray-800 text-yellow-500 px-3 py-1.5 rounded-lg shadow-sm">
-                            ☀️
-                        </a>
-                    @else
-                        <a href="{{ route('theme.switch', 'dark') }}" class="text-xs font-bold bg-gray-100 dark:bg-gray-800 text-indigo-600 px-3 py-1.5 rounded-lg shadow-sm">
-                            🌙
-                        </a>
-                    @endif
-
                     @if(app()->getLocale() == 'ar')
                         <a href="{{ route('lang.switch', 'en') }}" class="text-xs font-bold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-3 py-1.5 rounded-lg shadow-sm">
                             English 🇬🇧
@@ -132,14 +109,19 @@
             </div>
 
             <div class="mt-3 space-y-1">
+                <!-- زر الثيم الجديد للموبايل -->
+                @php $currentTheme = session('app_theme', 'light'); @endphp
+                <x-responsive-nav-link :href="route('theme.switch', $currentTheme === 'dark' ? 'light' : 'dark')">
+                    {{ $currentTheme === 'dark' ? '☀️ ' . (app()->getLocale() == 'ar' ? 'الوضع الصباحي' : 'Light Mode') : '🌙 ' . (app()->getLocale() == 'ar' ? 'الوضع الليلي' : 'Dark Mode') }}
+                </x-responsive-nav-link>
+
                 <!-- Authentication -->
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
-
                     <x-responsive-nav-link :href="route('logout')"
                             onclick="event.preventDefault();
-                                        this.closest('form').submit();" class="text-gray-800 dark:text-gray-200">
-                        {{ __('Log Out') }}
+                                        this.closest('form').submit();">
+                        {{ app()->getLocale() == 'ar' ? 'تسجيل الخروج' : 'Log Out' }}
                     </x-responsive-nav-link>
                 </form>
             </div>
