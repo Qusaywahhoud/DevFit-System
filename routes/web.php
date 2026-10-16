@@ -34,8 +34,12 @@ Route::get('/lang/{locale}', function ($locale) {
 Route::get('/theme/{mode}', function ($mode) {
     if (in_array($mode, ['light', 'dark'])) {
         session(['app_theme' => $mode]);
+<<<<<<< HEAD
         session()->save();
         cookie()->queue('app_theme', $mode, 525600); // حفظ الكوكي لمدة سنة إضافية
+=======
+        session()->save(); // حفظ الجلسة فوراً
+>>>>>>> ac80641 (Fix theme synchronization using session and head sync script v1.0.6)
     }
     return redirect()->back();
 })->name('theme.switch');
