@@ -21,7 +21,7 @@
             <!-- Settings Dropdown & Language Switcher (Desktop) -->
             <div class="hidden sm:flex sm:items-center sm:ms-6 gap-3">
 
-                <!-- زر تبديل اللغة (بقي كما هو) -->
+                <!-- زر تبديل اللغة فقط -->
                 <div class="flex items-center">
                     @if(app()->getLocale() == 'ar')
                         <a href="{{ route('lang.switch', 'en') }}" class="text-xs font-bold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-blue-600 hover:text-white px-3 py-2 rounded-xl transition shadow-sm">
@@ -34,11 +34,12 @@
                     @endif
                 </div>
 
-                <!-- إعدادات الملف الشخصي (Dropdown) -->
+                <!-- قائمة الملف الشخصي المنسدلة -->
                 <x-dropdown align="right" width="48">
                     <x-slot name="trigger">
                         <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 dark:text-gray-300 bg-white dark:bg-gray-900 hover:text-gray-700 dark:hover:text-gray-100 focus:outline-none transition ease-in-out duration-150">
                             <div>{{ Auth::user()->name }}</div>
+
                             <div class="ms-1">
                                 <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
@@ -47,7 +48,7 @@
                         </button>
                     </x-slot>
                     <x-slot name="content">
-                        <!-- زر الثيم الجديد (يعرض الصباحي إذا كنت في الليلي والعكس) -->
+                        <!-- خيار تبديل الثيم داخل القائمة المنسدلة بنمط التبديل المباشر -->
                         @php $currentTheme = session('app_theme', 'light'); @endphp
                         <x-dropdown-link :href="route('theme.switch', $currentTheme === 'dark' ? 'light' : 'dark')">
                             {{ $currentTheme === 'dark' ? '☀️ ' . (app()->getLocale() == 'ar' ? 'الوضع الصباحي' : 'Light Mode') : '🌙 ' . (app()->getLocale() == 'ar' ? 'الوضع الليلي' : 'Dark Mode') }}
@@ -109,7 +110,7 @@
             </div>
 
             <div class="mt-3 space-y-1">
-                <!-- زر الثيم الجديد للموبايل -->
+                <!-- خيار الثيم للموبايل داخل القائمة -->
                 @php $currentTheme = session('app_theme', 'light'); @endphp
                 <x-responsive-nav-link :href="route('theme.switch', $currentTheme === 'dark' ? 'light' : 'dark')">
                     {{ $currentTheme === 'dark' ? '☀️ ' . (app()->getLocale() == 'ar' ? 'الوضع الصباحي' : 'Light Mode') : '🌙 ' . (app()->getLocale() == 'ar' ? 'الوضع الليلي' : 'Dark Mode') }}
