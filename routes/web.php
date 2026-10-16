@@ -31,11 +31,11 @@ Route::get('/lang/{locale}', function ($locale) {
     }
     return redirect()->back();
 })->name('lang.switch');
-
 Route::get('/theme/{mode}', function ($mode) {
     if (in_array($mode, ['light', 'dark'])) {
         session(['app_theme' => $mode]);
         session()->save();
+        cookie()->queue('app_theme', $mode, 525600); // حفظ الكوكي لمدة سنة إضافية
     }
     return redirect()->back();
 })->name('theme.switch');
