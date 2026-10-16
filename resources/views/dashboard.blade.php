@@ -1,4 +1,3 @@
-<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
@@ -6,12 +5,12 @@
         </h2>
     </x-slot>
 
-    <div class="py-12" dir="{{ app()->getLocale() == 'ar' ? 'rtl' : 'ltr' }}">
+    <div class="py-12 bg-gray-100 dark:bg-gray-900 min-h-screen" dir="{{ app()->getLocale() == 'ar' ? 'rtl' : 'ltr' }}">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white dark:bg-gray-900 shadow-xl sm:rounded-2xl p-6 md:p-8 border border-gray-200 dark:border-gray-800">
+            <div class="bg-white dark:bg-gray-800 shadow-xl sm:rounded-2xl p-6 md:p-8 border border-gray-200 dark:border-gray-700">
 
                 <!-- رأس اللوحة ومعلومات المستخدم -->
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-6 border-b border-gray-200 dark:border-gray-800">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-6 border-b border-gray-200 dark:border-gray-700">
                     <div>
                         <h3 class="text-2xl font-extrabold text-blue-600 dark:text-blue-400">
                             {{ app()->getLocale() == 'ar' ? 'أهلاً بك، ' . Auth::user()->name . ' 👋' : 'Welcome Back, ' . Auth::user()->name . ' 👋' }}
@@ -28,10 +27,10 @@
                     </div>
                 </div>
 
-                <!-- 🤖 قسم ربط تيليجرام الجديد -->
-                <div class="mb-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-800 rounded-2xl border border-blue-100 dark:border-gray-700 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4 transition hover:shadow-md">
+                <!-- 🤖 قسم ربط تيليجرام -->
+                <div class="mb-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-700 rounded-2xl border border-blue-100 dark:border-gray-600 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4 transition hover:shadow-md">
                     <div>
-                        <h3 class="text-lg font-bold text-blue-800 dark:text-blue-400 mb-1">
+                        <h3 class="text-lg font-bold text-blue-800 dark:text-blue-300 mb-1">
                             {{ app()->getLocale() == 'ar' ? '🤖 تفعيل إشعارات تيليجرام' : '🤖 Enable Telegram Notifications' }}
                         </h3>
                         <p class="text-sm text-gray-600 dark:text-gray-300">
@@ -40,38 +39,33 @@
                     </div>
                     <div>
                         @if(auth()->user()->telegram_chat_id)
-                            <span class="inline-flex items-center px-4 py-2.5 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 rounded-xl font-bold text-sm border border-green-200 dark:border-green-800">
+                            <span class="inline-flex items-center px-4 py-2.5 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 rounded-xl font-bold text-sm border border-green-200 dark:border-green-700">
                                 {{ app()->getLocale() == 'ar' ? '✅ حسابك مربوط بنجاح' : '✅ Account Linked Successfully' }}
                             </span>
                         @else
-<a href="https://t.me/devfit_reminder_bot?start={{ auth()->id() }}" target="_blank"                               class="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-md transition">
+                            <a href="https://t.me/devfit_reminder_bot?start={{ auth()->id() }}" target="_blank" class="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-md transition">
                                 <span>{{ app()->getLocale() == 'ar' ? 'اربط حسابك الآن' : 'Link Account Now' }}</span>
                                 <span>🚀</span>
                             </a>
                         @endif
                     </div>
                 </div>
-                <!-- نهاية قسم تيليجرام -->
 
                 <!-- حساب الإحصائيات برمجياً -->
                 @php
                     $userId = Auth::id();
                     $completedExercises = \App\Models\CompletedExercise::where('user_id', $userId)->latest()->get();
 
-                    // 1. إجمالي التمارين
                     $totalExercises = $completedExercises->count();
 
-                    // 2. تمارين هذا الأسبوع
                     $thisWeek = \App\Models\CompletedExercise::where('user_id', $userId)
                                             ->where('created_at', '>=', now()->startOfWeek())
                                             ->count();
 
-                    // 3. أيام الالتزام الفريدة
                     $uniqueDays = $completedExercises->map(function ($ex) {
                         return $ex->created_at->format('Y-m-d');
                     })->unique()->sortDesc()->values();
 
-                    // 4. حساب السلسلة المتتالية (Streak)
                     $streak = 0;
                     $expectedDate = now()->format('Y-m-d');
 
@@ -87,7 +81,6 @@
                         }
                     }
 
-                    // 5. حساب تقدم اليوم (مع تثبيت العرض عند الحد الأقصى 3)
                     $dailyGoal = 3;
                     $todayExercises = \App\Models\CompletedExercise::where('user_id', $userId)
                                             ->whereDate('created_at', now()->toDateString())
@@ -96,8 +89,7 @@
                     $displayedTodayExercises = min($todayExercises, $dailyGoal);
                     $progressPercentage = $todayExercises > 0 ? min(($todayExercises / $dailyGoal) * 100, 100) : 0;
 
-                   // 6. تجهيز بيانات لوحة النشاط (Contribution Graph) آخر 4 أشهر
-                    $startDate = now()->subDays(119); // 17 أسبوع * 7 أيام
+                    $startDate = now()->subDays(119);
                     $endDate = now();
 
                     $dailyActivity = \App\Models\CompletedExercise::selectRaw('DATE(created_at) as date, COUNT(*) as count')
@@ -196,7 +188,7 @@
                         {{ app()->getLocale() == 'ar' ? 'أوسمة الإنجاز 🏅' : 'Achievement Badges 🏅' }}
                     </h3>
                     <div class="flex flex-wrap gap-4">
-                        <div class="flex items-center gap-3 p-3 rounded-xl border {{ $totalExercises >= 1 ? 'bg-yellow-50 dark:bg-yellow-900/30 border-yellow-400 opacity-100' : 'bg-gray-50 dark:bg-gray-700 border-gray-300 opacity-50 grayscale' }}">
+                        <div class="flex items-center gap-3 p-3 rounded-xl border {{ $totalExercises >= 1 ? 'bg-yellow-50 dark:bg-yellow-900/30 border-yellow-400 opacity-100' : 'bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 opacity-50 grayscale' }}">
                             <div class="text-4xl">🌟</div>
                             <div>
                                 <h4 class="font-bold text-gray-900 dark:text-white text-sm">
@@ -207,7 +199,7 @@
                                 </p>
                             </div>
                         </div>
-                        <div class="flex items-center gap-3 p-3 rounded-xl border {{ $streak >= 3 ? 'bg-orange-50 dark:bg-orange-900/30 border-orange-400 opacity-100' : 'bg-gray-50 dark:bg-gray-700 border-gray-300 opacity-50 grayscale' }}">
+                        <div class="flex items-center gap-3 p-3 rounded-xl border {{ $streak >= 3 ? 'bg-orange-50 dark:bg-orange-900/30 border-orange-400 opacity-100' : 'bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 opacity-50 grayscale' }}">
                             <div class="text-4xl">⚡</div>
                             <div>
                                 <h4 class="font-bold text-gray-900 dark:text-white text-sm">
@@ -218,7 +210,7 @@
                                 </p>
                             </div>
                         </div>
-                        <div class="flex items-center gap-3 p-3 rounded-xl border {{ $totalExercises >= 10 ? 'bg-purple-50 dark:bg-purple-900/30 border-purple-400 opacity-100' : 'bg-gray-50 dark:bg-gray-700 border-gray-300 opacity-50 grayscale' }}">
+                        <div class="flex items-center gap-3 p-3 rounded-xl border {{ $totalExercises >= 10 ? 'bg-purple-50 dark:bg-purple-900/30 border-purple-400 opacity-100' : 'bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 opacity-50 grayscale' }}">
                             <div class="text-4xl">👑</div>
                             <div>
                                 <h4 class="font-bold text-gray-900 dark:text-white text-sm">
@@ -313,7 +305,7 @@
                 @if($completedExercises->count() > 0)
                     <div class="space-y-3">
                         @foreach($completedExercises as $log)
-                            <div class="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl flex justify-between items-center border border-gray-200 dark:border-gray-700 shadow-sm transition hover:shadow-md">
+                            <div class="bg-gray-50 dark:bg-gray-700/60 p-4 rounded-xl flex justify-between items-center border border-gray-200 dark:border-gray-700 shadow-sm transition hover:shadow-md">
                                 <div class="flex items-center gap-3">
                                     <span class="text-2xl">✅</span>
                                     <span class="font-bold text-gray-900 dark:text-white text-base">{{ $log->exercise_title }}</span>
