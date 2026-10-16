@@ -49,8 +49,8 @@
                     </x-slot>
                     <x-slot name="content">
                         <!-- زر تبديل الثيم المباشر داخل القائمة المنسدلة -->
-                        @php 
-                            $currentTheme = session('app_theme') ?? request()->cookie('app_theme', 'light'); 
+                        @php
+                            $currentTheme = session('app_theme') ?? request()->cookie('app_theme', 'light');
                         @endphp
                         <x-dropdown-link :href="route('theme.switch', $currentTheme === 'dark' ? 'light' : 'dark')">
                             {{ $currentTheme === 'dark' ? '☀️ ' . (app()->getLocale() == 'ar' ? 'الوضع الصباحي' : 'Light Mode') : '🌙 ' . (app()->getLocale() == 'ar' ? 'الوضع الليلي' : 'Dark Mode') }}
@@ -112,8 +112,8 @@
             </div>
 
             <div class="mt-3 space-y-1">
-                @php 
-                    $currentTheme = session('app_theme') ?? request()->cookie('app_theme', 'light'); 
+                @php
+                    $currentTheme = session('app_theme') ?? request()->cookie('app_theme', 'light');
                 @endphp
                 <x-responsive-nav-link :href="route('theme.switch', $currentTheme === 'dark' ? 'light' : 'dark')">
                     {{ $currentTheme === 'dark' ? '☀️ ' . (app()->getLocale() == 'ar' ? 'الوضع الصباحي' : 'Light Mode') : '🌙 ' . (app()->getLocale() == 'ar' ? 'الوضع الليلي' : 'Dark Mode') }}
