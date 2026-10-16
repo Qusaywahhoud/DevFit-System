@@ -34,7 +34,7 @@
                     @endif
                 </div>
 
-                <!-- قائمة الملف الشخصي المنسدلة -->
+                <!-- قائمة اسم المستخدم المنسدلة (تحتوي على زر الثيم الوحيد) -->
                 <x-dropdown align="right" width="48">
                     <x-slot name="trigger">
                         <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 dark:text-gray-300 bg-white dark:bg-gray-900 hover:text-gray-700 dark:hover:text-gray-100 focus:outline-none transition ease-in-out duration-150">
@@ -48,8 +48,10 @@
                         </button>
                     </x-slot>
                     <x-slot name="content">
-                        <!-- خيار تبديل الثيم داخل القائمة المنسدلة بنمط التبديل المباشر -->
-                        @php $currentTheme = session('app_theme', 'light'); @endphp
+                        <!-- زر تبديل الثيم المباشر داخل القائمة المنسدلة -->
+                        @php 
+                            $currentTheme = session('app_theme') ?? request()->cookie('app_theme', 'light'); 
+                        @endphp
                         <x-dropdown-link :href="route('theme.switch', $currentTheme === 'dark' ? 'light' : 'dark')">
                             {{ $currentTheme === 'dark' ? '☀️ ' . (app()->getLocale() == 'ar' ? 'الوضع الصباحي' : 'Light Mode') : '🌙 ' . (app()->getLocale() == 'ar' ? 'الوضع الليلي' : 'Dark Mode') }}
                         </x-dropdown-link>
@@ -67,7 +69,7 @@
                 </x-dropdown>
             </div>
 
-            <!-- Hamburger -->
+            <!-- Hamburger (Mobile) -->
             <div class="-me-2 flex items-center sm:hidden">
                 <button @click="open = ! open" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none transition duration-150 ease-in-out">
                     <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
@@ -110,8 +112,9 @@
             </div>
 
             <div class="mt-3 space-y-1">
-                <!-- خيار الثيم للموبايل داخل القائمة -->
-                @php $currentTheme = session('app_theme', 'light'); @endphp
+                @php 
+                    $currentTheme = session('app_theme') ?? request()->cookie('app_theme', 'light'); 
+                @endphp
                 <x-responsive-nav-link :href="route('theme.switch', $currentTheme === 'dark' ? 'light' : 'dark')">
                     {{ $currentTheme === 'dark' ? '☀️ ' . (app()->getLocale() == 'ar' ? 'الوضع الصباحي' : 'Light Mode') : '🌙 ' . (app()->getLocale() == 'ar' ? 'الوضع الليلي' : 'Dark Mode') }}
                 </x-responsive-nav-link>
@@ -121,7 +124,7 @@
                     @csrf
                     <x-responsive-nav-link :href="route('logout')"
                             onclick="event.preventDefault();
-                                        this.closest('form').submit();">
+                                        this.closest('form').submit();" class="text-gray-800 dark:text-gray-200">
                         {{ app()->getLocale() == 'ar' ? 'تسجيل الخروج' : 'Log Out' }}
                     </x-responsive-nav-link>
                 </form>
