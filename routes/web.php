@@ -32,11 +32,10 @@ Route::get('/lang/{locale}', function ($locale) {
     return redirect()->back();
 })->name('lang.switch');
 
-// --- مسار تبديل الثيم (مماثل لتبديل اللغة تماماً) ---
 Route::get('/theme/{mode}', function ($mode) {
     if (in_array($mode, ['light', 'dark'])) {
-        // إنشاء الرد مع حفظ الكوكي بمدة سنة كاملة
-        return redirect()->back()->cookie('app_theme', $mode, 525600);
+        session(['app_theme' => $mode]);
+        session()->save();
     }
     return redirect()->back();
 })->name('theme.switch');
