@@ -1,5 +1,5 @@
 @php
-    $currentTheme = request()->cookie('app_theme', 'light');
+    $currentTheme = session('app_theme', 'light');
 @endphp
 <!DOCTYPE html>
 <html lang="{{ app()->getLocale() }}" dir="{{ app()->getLocale() == 'ar' ? 'rtl' : 'ltr' }}" class="{{ $currentTheme === 'dark' ? 'dark' : '' }}">
@@ -9,6 +9,17 @@
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
         <title>{{ config('app.name', 'DevFit') }}</title>
+
+        <!-- سكريبت إجبار مزامنة الجافاسكريبت مع الـ Session -->
+        <script>
+            if ("{{ $currentTheme }}" === 'dark') {
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            }
+        </script>
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
