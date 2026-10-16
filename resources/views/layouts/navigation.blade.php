@@ -24,7 +24,7 @@
                 <!-- زر تبديل الثيم (الليلي / الصباحي) -->
                 <div class="flex items-center">
                     @php
-                        $currentTheme = request()->cookie('app_theme', 'light');
+                        $currentTheme = session('app_theme', 'light');
                     @endphp
                     @if($currentTheme == 'dark')
                         <a href="{{ route('theme.switch', 'light') }}" class="text-xs font-bold bg-gray-100 dark:bg-gray-800 text-yellow-500 hover:bg-yellow-500 hover:text-white px-3 py-2 rounded-xl transition shadow-sm" title="التحويل للوضع الصباحي">
@@ -68,7 +68,7 @@
                             @csrf
                             <x-dropdown-link :href="route('logout')"
                                     onclick="event.preventDefault();
-                                            this.closest('form').submit();">
+                                                this.closest('form').submit();">
                                 {{ __('Log Out') }}
                             </x-dropdown-link>
                         </form>
@@ -107,7 +107,7 @@
                 <!-- أزرار الثيم واللغة للجوال -->
                 <div class="flex items-center gap-2">
                     @php
-                        $currentTheme = request()->cookie('app_theme', 'light');
+                        $currentTheme = session('app_theme', 'light');
                     @endphp
                     @if($currentTheme == 'dark')
                         <a href="{{ route('theme.switch', 'light') }}" class="text-xs font-bold bg-gray-100 dark:bg-gray-800 text-yellow-500 px-3 py-1.5 rounded-lg shadow-sm">
@@ -138,7 +138,7 @@
 
                     <x-responsive-nav-link :href="route('logout')"
                             onclick="event.preventDefault();
-                                    this.closest('form').submit();" class="text-gray-800 dark:text-gray-200">
+                                        this.closest('form').submit();" class="text-gray-800 dark:text-gray-200">
                         {{ __('Log Out') }}
                     </x-responsive-nav-link>
                 </form>
