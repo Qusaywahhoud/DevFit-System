@@ -1,6 +1,15 @@
 <!DOCTYPE html>
 <html lang="{{ app()->getLocale() }}" dir="{{ app()->getLocale() == 'ar' ? 'rtl' : 'ltr' }}">
-    <head>
+    <script>
+    function toggleTheme() {
+        const isDark = document.documentElement.classList.toggle('dark');
+        const mode = isDark ? 'dark' : 'light';
+        try { localStorage.setItem('theme', mode); } catch (e) {}
+        document.cookie = 'app_theme=' + mode + '; path=/; max-age=31536000; SameSite=Lax';
+        fetch("{{ url('/theme') }}/" + mode, { credentials: 'same-origin' }).catch(function () {});
+    }
+</script>
+<head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
