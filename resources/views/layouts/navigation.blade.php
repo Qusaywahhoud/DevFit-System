@@ -21,7 +21,7 @@
             <!-- Settings Dropdown & Language Switcher (Desktop) -->
             <div class="hidden sm:flex sm:items-center sm:ms-6 gap-3">
 
-                <!-- زر تبديل الثيم (أيقونة فقط) -->
+                <!-- زر تبديل الثيم (أيقونة فقط في الشريط العلوي) -->
                 <div class="flex items-center">
                     <button onclick="toggleTheme()" type="button" class="w-9 h-9 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition shadow-sm focus:outline-none" title="تغيير الثيم">
                         <span class="dark:hidden text-base">🌙</span>
@@ -42,7 +42,7 @@
                     @endif
                 </div>
 
-                <!-- قائمة اسم المستخدم المنسدلة (تحتوي على زر الثيم الوحيد) -->
+                <!-- قائمة اسم المستخدم المنسدلة (بدون خيارات الثيم نهائياً) -->
                 <x-dropdown align="right" width="48">
                     <x-slot name="trigger">
                         <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 dark:text-gray-300 bg-white dark:bg-gray-900 hover:text-gray-700 dark:hover:text-gray-100 focus:outline-none transition ease-in-out duration-150">
@@ -56,14 +56,6 @@
                         </button>
                     </x-slot>
                     <x-slot name="content">
-                        <!-- زر تبديل الثيم المباشر داخل القائمة المنسدلة -->
-                        @php
-                            $currentTheme = session('app_theme') ?? request()->cookie('app_theme', 'light');
-                        @endphp
-                        <x-dropdown-link :href="route('theme.switch', $currentTheme === 'dark' ? 'light' : 'dark')">
-                            {{ $currentTheme === 'dark' ? '☀️ ' . (app()->getLocale() == 'ar' ? 'الوضع الصباحي' : 'Light Mode') : '🌙 ' . (app()->getLocale() == 'ar' ? 'الوضع الليلي' : 'Dark Mode') }}
-                        </x-dropdown-link>
-
                         <!-- Authentication -->
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
@@ -120,13 +112,6 @@
             </div>
 
             <div class="mt-3 space-y-1">
-                @php
-                    $currentTheme = session('app_theme') ?? request()->cookie('app_theme', 'light');
-                @endphp
-                <x-responsive-nav-link :href="route('theme.switch', $currentTheme === 'dark' ? 'light' : 'dark')">
-                    {{ $currentTheme === 'dark' ? '☀️ ' . (app()->getLocale() == 'ar' ? 'الوضع الصباحي' : 'Light Mode') : '🌙 ' . (app()->getLocale() == 'ar' ? 'الوضع الليلي' : 'Dark Mode') }}
-                </x-responsive-nav-link>
-
                 <!-- Authentication -->
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
