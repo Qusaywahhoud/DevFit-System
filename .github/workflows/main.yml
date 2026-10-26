@@ -3,6 +3,7 @@
 on:
   push:
     branches: [ main, master ]
+    tags: [ 'v*' ]
 
 permissions:
   contents: read
@@ -21,11 +22,19 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Extract Metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/qusaywahhoud/devfit-system
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+
       - name: Build & push
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-          tags: |
-            ghcr.io/qusaywahhoud/devfit-system:latest
-            ghcr.io/qusaywahhoud/devfit-system:v1.0.12
+          tags: ${{ steps.meta.outputs.tags }}
