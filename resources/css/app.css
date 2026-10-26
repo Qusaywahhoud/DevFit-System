@@ -1,3 +1,22 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+/* حاوية الصورة لتثبيت العرض والارتفاع ومنع أي تمدد عشوائي */
+.exercise-image-container {
+    width: 100%;
+    height: 320px; /* ارتفاع ثابت وموحد لكل الكروت يمنع تمددها الطولي */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    background-color: #f8fafc; /* خلفية هادئة أثناء التحميل */
+    border-radius: 8px;
+}
+
+/* تنسيق الصورة نفسها لتبقى داخل الحدود تماماً دون قص */
+.exercise-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* تضمن ظهور تفاصيل الصورة بالكامل مهما تغير حجم الشاشة */
+    object-position: center;
+}

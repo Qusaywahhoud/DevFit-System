@@ -19,6 +19,8 @@
         .filter-btn { background: #e5e7eb; color: #374151; padding: 8px 16px; margin: 0 4px; text-decoration: none; border-radius: 20px; font-size: 14px; transition: 0.2s; display: inline-block; }
         .filter-btn:hover, .filter-btn.active { background: #2563eb; color: white; }
 
+        .exercise-img { width: 100%; max-height: 260px; object-fit: cover; border-radius: 6px; margin-bottom: 12px; }
+
         /* تنسيقات الوضع الليلي (Dark Mode) */
         body.dark-mode { background-color: #111827; color: #f3f4f6; }
         body.dark-mode .card { background: #1f2937; box-shadow: 0 2px 5px rgba(255,255,255,0.05); border-right: 5px solid #3b82f6; }
@@ -90,9 +92,92 @@
         @endforeach
     </div>
 
+
     <!-- عرض التمارين -->
     @foreach($exercises as $index => $exercise)
+    <style>
+        /* الألوان الافتراضية (الوضع النهاري / الصباحي) */
+:root {
+    --card-bg: #ffffff;
+    --card-border: #e2e8f0;
+    --text-main: #1e293b;
+    --text-muted: #64748b;
+    --img-container-bg: #f8fafc;
+}
+
+/* الألوان الخاصة بالوضع الليلي (تطبق عندما يكون الكلاس dark موجوداً في الـ body أو الـ wrapper) */
+body.dark, .dark-mode {
+    --card-bg: #1e293b;         /* رمادي زرقاء داكن ومريح */
+    --card-border: #334155;     /* حدود خفيفة للفصل بين الكروت */
+    --text-main: #f8fafc;       /* أبيض ساطع للعناوين */
+    --text-muted: #94a3b8;      /* رمادي هادئ للنصوص والوصف */
+    --img-container-bg: #0f172a;  /* خلفية داكنة نظيفة داخل إطار الصورة */
+}
+
+/* تطبيق المتغيرات على الكارت والعناصر */
+/* الألوان الأساسية للوضع النهاري (الصباحي) */
+.card,
+body:not(.dark):not(.dark-mode) .card {
+    background-color: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    color: #1e293b !important;
+}
+
+.exercise-image-container,
+body:not(.dark):not(.dark-mode) .exercise-image-container {
+    background-color: #f8fafc !important;
+}
+
+/* الألوان الخاصة بالوضع الليلي (تتفاعل تلقائياً مع أي كلاس ليلي شائع) */
+body.dark .card,
+body.dark-mode .card,
+.dark .card,
+[data-theme="dark"] .card {
+    background-color: #1e293b !important; /* رمادي زرقاء داكن ومريح */
+    border: 1px solid #334155 !important;
+    color: #f8fafc !important;
+}
+
+body.dark .exercise-image-container,
+body.dark-mode .exercise-image-container,
+.dark .exercise-image-container,
+[data-theme="dark"] .exercise-image-container {
+    background-color: #1e293b !important; /* خلفية داكنة نظيفة لإطار الصورة */
+}
+
+/* ثبات أبعاد الصورة ومنع التمدد في الحالتين */
+.exercise-image-container {
+    width: 100%;
+    max-width: 650px;       /* تحديد أقصى عرض لكي لا تتمدد الصورة بشكل مزعج في الشاشات العريضة */
+    height: 220px;          /* تقليل الارتفاع ليصبح أكثر تناسقاً ورشاقة */
+    margin: 0 auto 16px auto; /* توسيط الحاوية داخل الكارت مع ترك مسافة سفلية */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 12px;
+    overflow: hidden;
+    background-color: var(--img-container-bg, #0f172a);
+}
+
+.exercise-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* يحافظ على تفاصيل الصورة بالكامل دون أي قص أو تشوه */
+}
+/* توحيد ألوان النصوص والعناوين داخل الكارت لضمان وضوحها */
+.card h3, .card .exercise-title {
+    font-weight: 600;
+
+    }
+</style>
         <div class="card">
+            <!-- عرض الصورة التوضيحية -->
+@if($exercise->image_path)
+       <div class="exercise-image-container">
+    <img src="{{ $exercise->image_path }}" alt="Exercise Step" class="exercise-img">
+</div>
+@endif
+
             <h2>{{ $exercise->title }}</h2>
             <p>
                 <strong>{{ app()->getLocale() == 'ar' ? 'التصنيف:' : 'Category:' }}</strong>
@@ -112,7 +197,7 @@
             <!-- أزرار التعديل والحذف -->
             @auth
                 @if(Auth::user()->is_admin)
-                  <div style="margin-top: 15px; display: flex; gap: 10px; border-top: 1px solid #e5e7eb; padding-top: 10px;">
+                    <div style="margin-top: 15px; display: flex; gap: 10px; border-top: 1px solid #e5e7eb; padding-top: 10px;">
                         <a href="{{ route('exercises.edit', $exercise->id) }}" style="background: #d97706; color: white; padding: 5px 12px; text-decoration: none; border-radius: 4px; font-size: 13px; font-weight: bold;">
                             {{ app()->getLocale() == 'ar' ? 'تعديل ✏️' : 'Edit ✏️' }}
                         </a>
@@ -158,7 +243,7 @@
             let timer = parseInt(duration);
 
             if (activeInterval !== null) {
-                alert(isAr ? "⚠️️ يوجد تمرين قيد التشغيل بالفعل!" : "⚠️ An exercise is already running!");
+                alert(isAr ? "⚠ يوجد تمرين قيد التشغيل بالفعل!" : "⚠️ An exercise is already running!");
                 return;
             }
 

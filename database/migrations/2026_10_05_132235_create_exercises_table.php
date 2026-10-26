@@ -8,18 +8,18 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (!Schema::hasTable('exercises')) {
-            Schema::create('exercises', function (Blueprint $table) {
-                $table->id();
-                $table->string('title_ar');
-                $table->string('title_en');
-                $table->text('description_ar');
-                $table->text('description_en');
-                $table->string('category');
-                $table->integer('duration_seconds');
-                $table->timestamps();
-            });
-        }
+        Schema::create('exercises', function (Blueprint $table) {
+            $table->id();
+            $table->string('title');                  // العنوان بالإنجليزية (الأساسي)
+            $table->string('title_ar')->nullable();   // العنوان بالعربية
+            $table->text('description');             // الوصف بالإنجليزية (الأساسي)
+            $table->text('description_ar')->nullable(); // الوصف بالعربية
+            $table->string('category');
+            $table->integer('duration_seconds')->default(60);
+            $table->string('image_path')->nullable();
+            $table->string('video_path')->nullable();
+            $table->timestamps();
+        });
     }
 
     public function down(): void

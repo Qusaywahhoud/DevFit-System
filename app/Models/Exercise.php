@@ -10,27 +10,35 @@ class Exercise extends Model
     use HasFactory;
 
     protected $fillable = [
+        'title',
         'title_ar',
-        'title_en',
+        'description',
         'description_ar',
-        'description_en',
         'category',
-        'duration_seconds'
+        'duration_seconds',
+        'image_path',
+        'video_path',
     ];
 
-    // جلب العنوان تلقائياً حسب اللغة
+    // جلب العنوان تلقائياً حسب اللغة الحالية للموقع
     public function getTitleAttribute()
     {
-        return app()->getLocale() === 'ar' ? $this->title_ar : ($this->title_en ?: $this->title_ar);
+        $englishTitle = $this->attributes['title'] ?? null;
+        return app()->getLocale() === 'ar'
+            ? ($this->title_ar ?: $englishTitle)
+            : ($englishTitle ?: $this->title_ar);
     }
 
-    // جلب الوصف تلقائياً حسب اللغة
+    // جلب الوصف تلقائياً حسب اللغة الحالية للموقع
     public function getDescriptionAttribute()
     {
-        return app()->getLocale() === 'ar' ? $this->description_ar : ($this->description_en ?: $this->description_ar);
+        $englishDescription = $this->attributes['description'] ?? null;
+        return app()->getLocale() === 'ar'
+            ? ($this->description_ar ?: $englishDescription)
+            : ($englishDescription ?: $this->description_ar);
     }
 
-    // ترجمة التصنيف تلقائياً حسب اللغة (سواء كان مخزناً كمفتاح أو نص)
+    // ترجمة اسم التصنيف تلقائياً حسب اللغة
     public function getCategoryAttribute($value)
     {
         $map = [
@@ -45,12 +53,10 @@ class Exercise extends Model
 
         $locale = app()->getLocale();
 
-        // إذا كان مخزناً كمفتاح (مثل eyes)
         if (isset($map[$value])) {
             return $map[$value][$locale] ?? $value;
         }
 
-        // إذا كان مخزناً كنص عربي سابقاً، نحاول مطابقته أو إرجاعه
         foreach ($map as $key => $translations) {
             if ($value === $translations['ar'] || $value === $translations['en']) {
                 return $translations[$locale] ?? $value;
@@ -58,5 +64,11 @@ class Exercise extends Model
         }
 
         return $value;
+    }
+
+    // علاقة التمارين المنجزة
+    public function completedExercises()
+    {
+        return $this->hasMany(CompletedExercise::class);
     }
 }
