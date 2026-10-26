@@ -28,4 +28,4 @@ jobs:
           push: true
           tags: |
             ghcr.io/qusaywahhoud/devfit-system:latest
-            ghcr.io/qusaywahhoud/devfit-system:v1.0.11
+            ghcr.io/qusaywahhoud/devfit-system:v1.0.12
