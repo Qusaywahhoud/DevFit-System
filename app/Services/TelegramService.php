@@ -10,10 +10,10 @@ class TelegramService
 
     public function __construct()
     {
-        $this->token = config('services.telegram.token') ?? env('TELEGRAM_BOT_TOKEN');
+        $this->token = config('services.telegram.token') ?? config('services.telegram.bot_token') ?? env('TELEGRAM_BOT_TOKEN');
     }
 
-   public function sendMessage($chatId, $message, $replyMarkup = null)
+    public function sendMessage($chatId, $message, $replyMarkup = null)
     {
         $url = "https://api.telegram.org/bot{$this->token}/sendMessage";
 
@@ -28,7 +28,7 @@ class TelegramService
             $payload['reply_markup'] = $replyMarkup;
         }
 
-        return \Illuminate\Support\Facades\Http::withoutVerifying()->post($url, $payload);
+        return Http::withoutVerifying()->post($url, $payload);
     }
     
     public function getUpdates($offset = null)
@@ -43,3 +43,4 @@ class TelegramService
         return $response->json();
     }
 }
+

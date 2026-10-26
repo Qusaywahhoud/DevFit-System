@@ -3,21 +3,38 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Services\TelegramService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class ProfileController extends Controller
 {
+    protected TelegramService $telegramService;
+
+    public function __construct(TelegramService $telegramService)
+    {
+        $this->telegramService = $telegramService;
+    }
+
     /**
-     * Display the user's profile form.
+     * Display the user's profile form with generated Telegram OTP Deep Link.
      */
     public function edit(Request $request): View
     {
+        $user = $request->user();
+
+        // Ensure user has a unique telegram verification token (OTP / Deep Link token)
+        if (empty($user->telegram_verification_token)) {
+            $user->telegram_verification_token = Str::random(32);
+            $user->save();
+        }
+
         return view('profile.edit', [
-            'user' => $request->user(),
+            'user' => $user,
         ]);
     }
 
@@ -58,3 +75,4 @@ class ProfileController extends Controller
         return Redirect::to('/');
     }
 }
+

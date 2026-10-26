@@ -17,8 +17,8 @@ Route::get('/export-log', [ExerciseController::class, 'exportCsv'])->name('expor
 Route::post('/complete-exercise', [ExerciseController::class, 'completeExercise'])->name('complete.exercise')->middleware('auth');
 
 Route::middleware(['auth', \App\Http\Middleware\IsAdmin::class])->group(function () {
-    Route::get('/create', [ExerciseController::class, 'create']);
-    Route::post('/exercises', [ExerciseController::class, 'store']);
+    Route::get('/create', [ExerciseController::class, 'create'])->name('exercises.create');
+    Route::post('/exercises', [ExerciseController::class, 'store'])->name('exercises.store');
     Route::get('/exercises/{id}/edit', [ExerciseController::class, 'edit'])->name('exercises.edit');
     Route::put('/exercises/{id}', [ExerciseController::class, 'update'])->name('exercises.update');
     Route::delete('/exercises/{id}', [ExerciseController::class, 'destroy'])->name('exercises.destroy');

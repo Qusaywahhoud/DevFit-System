@@ -289,44 +289,7 @@
                     </div>
                 </div>
 
-                <!-- قسم السجل مع زر التصدير -->
-                <div class="flex justify-between items-center mb-4">
-                    <h4 class="text-lg font-bold text-gray-800 dark:text-gray-200">
-                        {{ app()->getLocale() == 'ar' ? 'سجل التمارين المنجزة حديثاً:' : 'Recent Completed Exercises:' }}
-                    </h4>
-                    @if($completedExercises->count() > 0)
-                        <a href="{{ route('export.log') }}" class="bg-green-600 hover:bg-green-700 text-white text-sm px-4 py-2 rounded-xl font-bold transition shadow-sm flex items-center gap-2">
-                            <span>{{ app()->getLocale() == 'ar' ? 'تصدير السجل كـ Excel' : 'Export Log as Excel' }}</span>
-                            <span>📥</span>
-                        </a>
-                    @endif
-                </div>
 
-                @if($completedExercises->count() > 0)
-                    <div class="space-y-3">
-                        @foreach($completedExercises as $log)
-                            <div class="bg-gray-50 dark:bg-gray-700/60 p-4 rounded-xl flex justify-between items-center border border-gray-200 dark:border-gray-700 shadow-sm transition hover:shadow-md">
-                                <div class="flex items-center gap-3">
-                                    <span class="text-2xl">✅</span>
-                                    <span class="font-bold text-gray-900 dark:text-white text-base">{{ $log->exercise_title }}</span>
-                                </div>
-                                <span dir="ltr" class="text-xs font-semibold text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 px-3 py-1.5 rounded-lg inline-block">
-                                    {{ $log->created_at->diffForHumans() }}
-                                </span>
-                            </div>
-                        @endforeach
-                    </div>
-                @else
-                    <div class="text-center py-12 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-700">
-                        <div class="text-4xl mb-3">🧘‍♂️</div>
-                        <p class="text-gray-700 dark:text-gray-200 font-bold text-lg mb-1">
-                            {{ app()->getLocale() == 'ar' ? 'لم تقم بإنجاز أي تمرين بعد' : 'You have not completed any exercises yet' }}
-                        </p>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">
-                            {{ app()->getLocale() == 'ar' ? 'اذهب للرئيسية وأتمم أول تمرين لتظهر إنجازاتك هنا!' : 'Go to home and complete your first exercise to show your achievements here!' }}
-                        </p>
-                    </div>
-                @endif
 
             </div>
         </div>

@@ -21,7 +21,15 @@
             <!-- Settings Dropdown & Language Switcher (Desktop) -->
             <div class="hidden sm:flex sm:items-center sm:ms-6 gap-3">
 
-                <!-- زر تبديل اللغة فقط -->
+                <!-- زر تبديل الثيم (أيقونة فقط) -->
+                <div class="flex items-center">
+                    <button onclick="toggleTheme()" type="button" class="w-9 h-9 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition shadow-sm focus:outline-none" title="تغيير الثيم">
+                        <span class="dark:hidden text-base">🌙</span>
+                        <span class="hidden dark:inline text-base">☀️</span>
+                    </button>
+                </div>
+
+                <!-- زر تبديل اللغة -->
                 <div class="flex items-center">
                     @if(app()->getLocale() == 'ar')
                         <a href="{{ route('lang.switch', 'en') }}" class="text-xs font-bold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-blue-600 hover:text-white px-3 py-2 rounded-xl transition shadow-sm">

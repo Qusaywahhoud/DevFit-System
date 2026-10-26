@@ -8,5 +8,8 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-// يمكنك اختيار التكرار المناسب: hourly() كل ساعة، أو everyMinute() للتجربة الفورية
+// جدولة التذكير الصباحي يومياً في تمام الساعة 08:00 صباحاً
+Schedule::command('telegram:send-morning-reminders')->dailyAt('08:00');
+
+// جدولة التمارين الدورية (مثلاً كل 4 ساعات أو حسب الحاجة)
 Schedule::command('telegram:send-exercise')->everyFourHours();
