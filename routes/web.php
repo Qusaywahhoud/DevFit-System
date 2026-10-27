@@ -182,7 +182,6 @@ Route::post('/telegram/webhook', function (Request $request, TelegramService $te
     }
 
     // إرسال تمرين واحد فقط عند طلب التمارين
-
     if (in_array(strtolower(explode('@', $text, 2)[0]), ['/exercise', '/exercises'])) {
         $exercise = Exercise::inRandomOrder()->first();
 
@@ -218,14 +217,14 @@ Route::post('/telegram/webhook', function (Request $request, TelegramService $te
                 $photoUrl = $rawPhoto;
             } else {
                 $cleanPath = ltrim(preg_replace('#^public/#i', '', $rawPhoto), '/');
-                $storagePath = 'storage/' . ltrim(preg_replace('#^storage/#i', '', $cleanPath), '/');
+                $cleanPath = ltrim(preg_replace('#^storage/#i', '', $cleanPath), '/');
 
                 if (is_file(public_path($cleanPath))) {
                     $localPath = public_path($cleanPath);
                     $photoUrl = asset($cleanPath);
-                } elseif (is_file(public_path($storagePath))) {
-                    $localPath = public_path($storagePath);
-                    $photoUrl = asset($storagePath);
+                } elseif (is_file(public_path('storage/' . $cleanPath))) {
+                    $localPath = public_path('storage/' . $cleanPath);
+                    $photoUrl = asset('storage/' . $cleanPath);
                 } else {
                     $photoUrl = asset($cleanPath);
                 }
@@ -234,7 +233,7 @@ Route::post('/telegram/webhook', function (Request $request, TelegramService $te
 
         $sent = false;
 
-        // 1) إذا كان ملف الصورة موجوداً داخل مجلد public، ارفعه مباشرة إلى تيليجرام (لا يتأثر بإعدادات الدومين أو APP_URL)
+        // 1) رفع ملف الصورة المحلي مباشرة من داخل الحاوية إلى تيليجرام
         if ($localPath) {
             try {
                 $response = Http::connectTimeout(5)
@@ -263,7 +262,7 @@ Route::post('/telegram/webhook', function (Request $request, TelegramService $te
             }
         }
 
-        // 2) إذا لم يُرفع محلياً وكان هناك رابط للصورة، جرّب الإرسال عبر الرابط
+        // 2) خطة احتياطية: الإرسال عبر الرابط المباشر بدون storage/
         if (!$sent && $photoUrl) {
             try {
                 $response = Http::connectTimeout(5)
@@ -292,7 +291,7 @@ Route::post('/telegram/webhook', function (Request $request, TelegramService $te
             }
         }
 
-        // 3) إذا لم توجد صورة أو فشلت المحاولتان، أرسل التمرين كنص
+        // 3) خطة الطوارئ: إرسال التمرين كنص إذا لم توجد صورة أو تعذر الإرسال
         if (!$sent) {
             try {
                 $response = Http::connectTimeout(5)
