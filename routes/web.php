@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie;
 
 // الصفحة الرئيسية
+
 Route::get('/', [ExerciseController::class, 'index'])
     ->name('exercises.index');
 
