@@ -1,4 +1,5 @@
-﻿name: Build & Push Docker Image
+﻿
+name: Build & Push Docker Image
 
 on:
   push:
@@ -29,6 +30,7 @@ jobs:
           images: ghcr.io/qusaywahhoud/devfit-system
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=release-20261027,enable={{is_default_branch}}
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
 
