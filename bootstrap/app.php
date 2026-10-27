@@ -11,6 +11,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // الوثوق بالبروكسي العكسي لمنصة غيمة لحل مشكلة 419 وحفظ الجلسات واللغة عبر HTTPS
+        $middleware->trustProxies(at: '*');
+
         // تفعيل الـ Middleware الخاص باللغة
         $middleware->web(append: [
             \App\Http\Middleware\SetLocale::class,
