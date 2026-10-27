@@ -209,49 +209,97 @@ Route::post('/telegram/webhook', function (Request $request, TelegramService $te
         ];
 
         $token = config('services.telegram.bot_token', env('TELEGRAM_BOT_TOKEN'));
-        $photo = $exercise->image_path;
+        $rawPhoto = trim((string) $exercise->image_path);
+        $localPath = null;
+        $photoUrl = null;
 
-        if ($photo && !preg_match('#^https?://#i', $photo)) {
-            $photo = asset('storage/' . ltrim(str_replace('storage/', '', $photo), '/'));
+        if ($rawPhoto !== '') {
+            if (preg_match('#^https?://#i', $rawPhoto)) {
+                $photoUrl = $rawPhoto;
+            } else {
+                $cleanPath = ltrim(preg_replace('#^public/#i', '', $rawPhoto), '/');
+                $storagePath = 'storage/' . ltrim(preg_replace('#^storage/#i', '', $cleanPath), '/');
+
+                if (is_file(public_path($cleanPath))) {
+                    $localPath = public_path($cleanPath);
+                    $photoUrl = asset($cleanPath);
+                } elseif (is_file(public_path($storagePath))) {
+                    $localPath = public_path($storagePath);
+                    $photoUrl = asset($storagePath);
+                } else {
+                    $photoUrl = asset($cleanPath);
+                }
+            }
         }
 
         $sent = false;
 
-        if ($photo) {
+        // 1) إذا كان ملف الصورة موجوداً داخل مجلد public، ارفعه مباشرة إلى تيليجرام (لا يتأثر بإعدادات الدومين أو APP_URL)
+        if ($localPath) {
             try {
                 $response = Http::connectTimeout(5)
-                    ->timeout(8)
+                    ->timeout(15)
+                    ->attach('photo', file_get_contents($localPath), basename($localPath))
                     ->post("https://api.telegram.org/bot{$token}/sendPhoto", [
                         'chat_id' => $chatId,
-                        'photo' => $photo,
                         'caption' => $caption,
                         'reply_markup' => json_encode($keyboard, JSON_UNESCAPED_UNICODE),
                     ]);
 
                 $sent = $response->successful() && $response->json('ok') === true;
 
-                Log::info('Telegram exercise photo result', [
+                Log::info('Telegram exercise local photo upload result', [
                     'http_status' => $response->status(),
                     'telegram_ok' => $response->json('ok'),
                     'telegram_error' => $response->json('description'),
                     'exercise_id' => $exercise->id,
+                    'local_path' => $localPath,
                 ]);
             } catch (\Throwable $e) {
-                Log::warning('Telegram exercise photo exception', [
+                Log::warning('Telegram exercise local photo upload exception', [
                     'exercise_id' => $exercise->id,
                     'error' => $e->getMessage(),
                 ]);
             }
         }
 
-        // إذا لم توجد صورة أو فشل إرسالها، أرسل التمرين كنص.
+        // 2) إذا لم يُرفع محلياً وكان هناك رابط للصورة، جرّب الإرسال عبر الرابط
+        if (!$sent && $photoUrl) {
+            try {
+                $response = Http::connectTimeout(5)
+                    ->timeout(10)
+                    ->post("https://api.telegram.org/bot{$token}/sendPhoto", [
+                        'chat_id' => $chatId,
+                        'photo' => $photoUrl,
+                        'caption' => $caption,
+                        'reply_markup' => json_encode($keyboard, JSON_UNESCAPED_UNICODE),
+                    ]);
+
+                $sent = $response->successful() && $response->json('ok') === true;
+
+                Log::info('Telegram exercise URL photo result', [
+                    'http_status' => $response->status(),
+                    'telegram_ok' => $response->json('ok'),
+                    'telegram_error' => $response->json('description'),
+                    'exercise_id' => $exercise->id,
+                    'photo_url' => $photoUrl,
+                ]);
+            } catch (\Throwable $e) {
+                Log::warning('Telegram exercise URL photo exception', [
+                    'exercise_id' => $exercise->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        // 3) إذا لم توجد صورة أو فشلت المحاولتان، أرسل التمرين كنص
         if (!$sent) {
             try {
                 $response = Http::connectTimeout(5)
                     ->timeout(8)
                     ->post("https://api.telegram.org/bot{$token}/sendMessage", [
                         'chat_id' => $chatId,
-                        'text' => $caption . ($photo ? "\n\n📷 تعذر إرسال الصورة." : "\n\n📷 لا توجد صورة مسجلة لهذا التمرين."),
+                        'text' => $caption . ($rawPhoto !== '' ? "\n\n📷 تعذر إرسال الصورة." : "\n\n📷 لا توجد صورة مسجلة لهذا التمرين."),
                         'reply_markup' => json_encode($keyboard, JSON_UNESCAPED_UNICODE),
                     ]);
 
