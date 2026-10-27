@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-configure pdo_pgsql --with-pdo-pgsql=/usr \
     && docker-php-ext-install pdo_pgsql pcntl \
     && curl -sS https://getcomposer.org/installer \
-       | php -- --install-dir=/usr/local/bin --filename=composer
+        | php -- --install-dir=/usr/local/bin --filename=composer
 
 WORKDIR /app
 
@@ -25,7 +25,10 @@ RUN rm -rf bootstrap/cache/*.php storage/framework/views/*.php
 
 RUN composer install --no-dev --optimize-autoloader
 
-RUN chown -R www-data:www-data storage bootstrap/cache
+# إنشاء مجلدات الجلسات والتخزين ومنحها الصلاحيات الكاملة
+RUN mkdir -p storage/framework/sessions storage/framework/views storage/framework/cache \
+    && chown -R www-data:www-data storage bootstrap/cache \
+    && chmod -R 775 storage bootstrap/cache
 
 RUN if [ -f start.sh ]; then sed -i 's/\r$//' start.sh && chmod +x start.sh; fi
 
