@@ -252,9 +252,13 @@ Route::post('/telegram/webhook', function (Request $request, TelegramService $te
         }
 
         if (!$response->successful() || !$response->json('ok')) {
-            Log::error('Telegram exercise delivery failed', [
-                'response' => $response->body(),
+
+            Log::info('Telegram exercise delivery result', [
+                'http_status' => $response->status(),
+                'telegram_ok' => $response->json('ok'),
+                'telegram_error' => $response->json('description'),
                 'exercise_id' => $exercise->id,
+                'has_photo' => (bool) $photo,
             ]);
         }
 
