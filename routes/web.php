@@ -182,15 +182,12 @@ Route::post('/telegram/webhook', function (Request $request, TelegramService $te
     }
 
     // إرسال تمرين واحد فقط عند طلب التمارين
-    if (in_array($text, ['/exercise', '/exercises'])) {
+
+    if (in_array(strtolower(explode('@', $text, 2)[0]), ['/exercise', '/exercises'])) {
         $exercise = Exercise::inRandomOrder()->first();
 
         if (!$exercise) {
-            $telegram->sendMessage(
-                $chatId,
-                'لا توجد تمارين متاحة حالياً. 😅'
-            );
-
+            $telegram->sendMessage($chatId, 'لا توجد تمارين متاحة حالياً. 😅');
             return response()->json(['status' => 'success']);
         }
 
@@ -203,67 +200,78 @@ Route::post('/telegram/webhook', function (Request $request, TelegramService $te
         $caption = "💪 تمرينك لهذا الطلب\n\n🏋️ {$title}\n\n{$description}";
 
         $keyboard = [
-            'inline_keyboard' => [
+            'inline_keyboard' => [[
                 [
-                    [
-                        'text' => '✅ إكمال التمرين',
-                        'callback_data' => 'complete_' . $exercise->id,
-                    ],
+                    'text' => '✅ إكمال التمرين',
+                    'callback_data' => 'complete_' . $exercise->id,
                 ],
-            ],
+            ]],
         ];
 
         $token = config('services.telegram.bot_token', env('TELEGRAM_BOT_TOKEN'));
-
-        // حقل الصورة الصحيح في جدول التمارين هو image_path
         $photo = $exercise->image_path;
 
-        if ($photo && !str_starts_with($photo, 'http')) {
-            $photo = asset(
-                'storage/' . ltrim(str_replace('storage/', '', $photo), '/')
-            );
+        if ($photo && !preg_match('#^https?://#i', $photo)) {
+            $photo = asset('storage/' . ltrim(str_replace('storage/', '', $photo), '/'));
         }
+
+        $sent = false;
 
         if ($photo) {
-            $response = Http::post(
-                "https://api.telegram.org/bot{$token}/sendPhoto",
-                [
-                    'chat_id' => $chatId,
-                    'photo' => $photo,
-                    'caption' => $caption,
-                    'reply_markup' => json_encode(
-                        $keyboard,
-                        JSON_UNESCAPED_UNICODE
-                    ),
-                ]
-            );
-        } else {
-            $response = Http::post(
-                "https://api.telegram.org/bot{$token}/sendMessage",
-                [
-                    'chat_id' => $chatId,
-                    'text' => $caption . "\n\n📷 لا توجد صورة مسجلة لهذا التمرين.",
-                    'reply_markup' => json_encode(
-                        $keyboard,
-                        JSON_UNESCAPED_UNICODE
-                    ),
-                ]
-            );
+            try {
+                $response = Http::connectTimeout(5)
+                    ->timeout(8)
+                    ->post("https://api.telegram.org/bot{$token}/sendPhoto", [
+                        'chat_id' => $chatId,
+                        'photo' => $photo,
+                        'caption' => $caption,
+                        'reply_markup' => json_encode($keyboard, JSON_UNESCAPED_UNICODE),
+                    ]);
+
+                $sent = $response->successful() && $response->json('ok') === true;
+
+                Log::info('Telegram exercise photo result', [
+                    'http_status' => $response->status(),
+                    'telegram_ok' => $response->json('ok'),
+                    'telegram_error' => $response->json('description'),
+                    'exercise_id' => $exercise->id,
+                ]);
+            } catch (\Throwable $e) {
+                Log::warning('Telegram exercise photo exception', [
+                    'exercise_id' => $exercise->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
 
-        if (!$response->successful() || !$response->json('ok')) {
+        // إذا لم توجد صورة أو فشل إرسالها، أرسل التمرين كنص.
+        if (!$sent) {
+            try {
+                $response = Http::connectTimeout(5)
+                    ->timeout(8)
+                    ->post("https://api.telegram.org/bot{$token}/sendMessage", [
+                        'chat_id' => $chatId,
+                        'text' => $caption . ($photo ? "\n\n📷 تعذر إرسال الصورة." : "\n\n📷 لا توجد صورة مسجلة لهذا التمرين."),
+                        'reply_markup' => json_encode($keyboard, JSON_UNESCAPED_UNICODE),
+                    ]);
 
-            Log::info('Telegram exercise delivery result', [
-                'http_status' => $response->status(),
-                'telegram_ok' => $response->json('ok'),
-                'telegram_error' => $response->json('description'),
-                'exercise_id' => $exercise->id,
-                'has_photo' => (bool) $photo,
-            ]);
+                Log::info('Telegram exercise text fallback result', [
+                    'http_status' => $response->status(),
+                    'telegram_ok' => $response->json('ok'),
+                    'telegram_error' => $response->json('description'),
+                    'exercise_id' => $exercise->id,
+                ]);
+            } catch (\Throwable $e) {
+                Log::error('Telegram exercise text fallback exception', [
+                    'exercise_id' => $exercise->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         return response()->json(['status' => 'success']);
     }
+
 
     // الأمر غير معروف
     $telegram->sendMessage(
