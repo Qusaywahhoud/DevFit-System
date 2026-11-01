@@ -20,7 +20,7 @@ WORKDIR /app
 
 COPY . .
 COPY --from=assets /app/public/build ./public/build
-
+RUN rm -f .env
 RUN rm -rf bootstrap/cache/*.php storage/framework/views/*.php
 
 RUN composer install --no-dev --optimize-autoloader
@@ -43,6 +43,6 @@ ENV APP_NAME=DevFit \
 
 EXPOSE 8000
 
-RUN printf '#!/bin/sh\ncd /app\nphp artisan optimize:clear\nphp artisan storage:link\nphp artisan migrate --force\nexec php artisan serve --host=0.0.0.0 --port=8000\n' > /usr/local/bin/devfit-start.sh && chmod +x /usr/local/bin/devfit-start.sh
+RUN printf '#!/bin/sh\ncd /app\nphp artisan optimize:clear\nphp artisan storage:link\nphp artisan migrate --force\nexec php artisan serve --host=0.0.0.0 --port=8000 --no-reload\n' > /usr/local/bin/devfit-start.sh && chmod +x /usr/local/bin/devfit-start.sh
 
 ENTRYPOINT ["/usr/local/bin/devfit-start.sh"]
