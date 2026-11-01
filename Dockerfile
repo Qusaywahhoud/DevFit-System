@@ -25,17 +25,21 @@ RUN rm -rf bootstrap/cache/*.php storage/framework/views/*.php
 
 RUN composer install --no-dev --optimize-autoloader
 
-# إنشاء مجلدات الجلسات والتخزين ومنحها الصلاحيات الكاملة
-RUN mkdir -p storage/framework/sessions storage/framework/views storage/framework/cache \
-    && chown -R www-data:www-data storage bootstrap/cache \
-    && chmod -R 775 storage bootstrap/cache
+# إنشاء كافة المجلدات المطلوبة وإعطاؤها صلاحيات الكتابة الكاملة (777) لتجنب أخطاء الملكية
+RUN mkdir -p storage/framework/sessions \
+             storage/framework/views \
+             storage/framework/cache \
+             storage/logs \
+             bootstrap/cache \
+    && chmod -R 777 storage bootstrap/cache
 
 RUN if [ -f start.sh ]; then sed -i 's/\r$//' start.sh && chmod +x start.sh; fi
 
 ENV APP_NAME=DevFit \
     APP_ENV=production \
     APP_DEBUG=true \
-    DB_CONNECTION=pgsql
+    DB_CONNECTION=pgsql \
+    LOG_CHANNEL=stderr
 
 EXPOSE 8000
 
