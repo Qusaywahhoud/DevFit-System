@@ -362,6 +362,14 @@ Route::get('/cron/send-reminders', function (Request $request, TelegramService $
                     . "لا تنس تمرينك اليومي. أرسل /exercises للحصول على تمرين واحد اليوم! 💪🔥"
             );
 
+
+Route::get('/debug-session', fn () => response()->json([
+    'driver' => config('session.driver'),
+    'secure' => config('session.secure'),
+    'domain' => config('session.domain'),
+    'is_https' => request()->secure(),
+]));
+
             $count++;
         } catch (\Exception $e) {
             Log::error(
