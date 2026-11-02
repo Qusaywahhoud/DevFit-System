@@ -332,53 +332,56 @@ Route::post('/telegram/webhook', function (Request $request, TelegramService $te
 });
 
 // ضبط Webhook تيليجرام
-Route::get('/set-telegram-webhook', function () {
-    $token = config('services.telegram.bot_token', env('TELEGRAM_BOT_TOKEN'));
-    $url = secure_url('/telegram/webhook');
+// إرسال تمرين لكل مستخدم مربوط بتيليجرام
+Route::get('/cron/send-exercises', function (Request $request) {
+    $secret = (string) env('TELEGRAM_CRON_SECRET');
 
-    $response = Http::post(
-        "https://api.telegram.org/bot{$token}/setWebhook",
-        ['url' => $url]
-    );
-
-    return response()->json($response->json(), $response->successful() ? 200 : 500);
-});
-
-// إرسال التذكيرات
-Route::get('/cron/send-reminders', function (Request $request, TelegramService $telegram) {
-    if ($request->query('key') !== env('TELEGRAM_CRON_SECRET')) {
+    if ($secret === '' || !hash_equals($secret, (string) $request->query('key'))) {
         return response()->json(['error' => 'Unauthorized'], 401);
     }
 
+    $token = config('services.telegram.bot_token', env('TELEGRAM_BOT_TOKEN'));
     $users = User::whereNotNull('telegram_chat_id')->get();
-    $count = 0;
+    $sent = 0;
 
     foreach ($users as $user) {
+        $exercise = Exercise::inRandomOrder()->first();
+
+        if (!$exercise) {
+            break;
+        }
+
+        $title = $exercise->title_ar
+            ?: ($exercise->getRawOriginal('title') ?: 'تمرين');
+
+        $description = $exercise->description_ar
+            ?: ($exercise->getRawOriginal('description') ?: 'نفّذ التمرين بهدوء وبدون ألم.');
+
+        $keyboard = [
+            'inline_keyboard' => [[
+                [
+                    'text' => '✅ إكمال التمرين',
+                    'callback_data' => 'complete_' . $exercise->id,
+                ],
+            ]],
+        ];
+
         try {
-            $telegram->sendMessage(
-                $user->telegram_chat_id,
-                "🌅 صباح النشاط والحيوية يا {$user->name}!\n\n"
-                    . "لا تنس تمرينك اليومي. أرسل /exercises للحصول على تمرين واحد اليوم! 💪🔥"
-            );
+            $response = Http::connectTimeout(5)
+                ->timeout(10)
+                ->post("https://api.telegram.org/bot{$token}/sendMessage", [
+                    'chat_id' => $user->telegram_chat_id,
+                    'text' => "🌅 صباح النشاط يا {$user->name}!\n\n🏋️ {$title}\n\n{$description}",
+                    'reply_markup' => json_encode($keyboard, JSON_UNESCAPED_UNICODE),
+                ]);
 
-
-Route::get('/debug-session', fn () => response()->json([
-    'driver' => config('session.driver'),
-    'secure' => config('session.secure'),
-    'domain' => config('session.domain'),
-    'is_https' => request()->secure(),
-]));
-
-            $count++;
-        } catch (\Exception $e) {
-            Log::error(
-                "Failed to send reminder to user {$user->id}: " . $e->getMessage()
-            );
+            if ($response->json('ok') === true) {
+                $sent++;
+            }
+        } catch (\Throwable $e) {
+            Log::error("Failed to send exercise to user {$user->id}: " . $e->getMessage());
         }
     }
 
-    return response()->json([
-        'status' => 'success',
-        'message' => "تم إرسال التذكيرات إلى {$count} مستخدم بنجاح.",
-    ]);
+    return response()->json(['status' => 'success', 'sent' => $sent]);
 });
