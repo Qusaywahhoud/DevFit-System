@@ -14,7 +14,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie;
 
 // الصفحة الرئيسية
-
 Route::get('/', [ExerciseController::class, 'index'])
     ->name('exercises.index');
 
@@ -57,7 +56,6 @@ Route::get('/lang/{locale}', function ($locale) {
 Route::get('/theme/{mode}', function ($mode) {
     if (in_array($mode, ['light', 'dark'])) {
         session(['app_theme' => $mode]);
-        session()->save();
         Cookie::queue('app_theme', $mode, 525600);
     }
 
@@ -262,7 +260,7 @@ Route::post('/telegram/webhook', function (Request $request, TelegramService $te
             }
         }
 
-        // 2) خطة احتياطية: الإرسال عبر الرابط المباشر بدون storage/
+        // 2) خطة احتياطية: الإرسال عبر الرابط المباشر
         if (!$sent && $photoUrl) {
             try {
                 $response = Http::connectTimeout(5)
@@ -319,7 +317,6 @@ Route::post('/telegram/webhook', function (Request $request, TelegramService $te
         return response()->json(['status' => 'success']);
     }
 
-
     // الأمر غير معروف
     $telegram->sendMessage(
         $chatId,
@@ -331,8 +328,58 @@ Route::post('/telegram/webhook', function (Request $request, TelegramService $te
     return response()->json(['status' => 'success']);
 });
 
-// ضبط Webhook تيليجرام
-// إرسال تمرين لكل مستخدم مربوط بتيليجرام
+// ضبط Webhook تيليجرام (محمي بالمفتاح)
+Route::get('/set-telegram-webhook', function (Request $request) {
+    $secret = (string) env('TELEGRAM_CRON_SECRET');
+
+    if ($secret === '' || !hash_equals($secret, (string) $request->query('key'))) {
+        return response()->json(['error' => 'Unauthorized'], 401);
+    }
+
+    $token = config('services.telegram.bot_token', env('TELEGRAM_BOT_TOKEN'));
+
+    $response = Http::post(
+        "https://api.telegram.org/bot{$token}/setWebhook",
+        ['url' => secure_url('/telegram/webhook')]
+    );
+
+    return response()->json($response->json(), $response->successful() ? 200 : 500);
+});
+
+// إرسال التذكيرات (محمي بالمفتاح)
+Route::get('/cron/send-reminders', function (Request $request, TelegramService $telegram) {
+    $secret = (string) env('TELEGRAM_CRON_SECRET');
+
+    if ($secret === '' || !hash_equals($secret, (string) $request->query('key'))) {
+        return response()->json(['error' => 'Unauthorized'], 401);
+    }
+
+    $users = User::whereNotNull('telegram_chat_id')->get();
+    $count = 0;
+
+    foreach ($users as $user) {
+        try {
+            $telegram->sendMessage(
+                $user->telegram_chat_id,
+                "🌅 صباح النشاط والحيوية يا {$user->name}!\n\n"
+                    . "لا تنس تمرينك اليومي. أرسل /exercises للحصول على تمرين واحد اليوم! 💪🔥"
+            );
+
+            $count++;
+        } catch (\Exception $e) {
+            Log::error(
+                "Failed to send reminder to user {$user->id}: " . $e->getMessage()
+            );
+        }
+    }
+
+    return response()->json([
+        'status' => 'success',
+        'message' => "تم إرسال التذكيرات إلى {$count} مستخدم بنجاح.",
+    ]);
+});
+
+// إرسال تمرين مع الصورة لكل مستخدم مربوط بتيليجرام (محمي بالمفتاح)
 Route::get('/cron/send-exercises', function (Request $request) {
     $secret = (string) env('TELEGRAM_CRON_SECRET');
 
@@ -359,7 +406,7 @@ Route::get('/cron/send-exercises', function (Request $request) {
             ?: ($exercise->getRawOriginal('description') ?: 'نفّذ التمرين بهدوء وبدون ألم.');
 
         $caption = mb_substr(
-            " مرحبا يا {$user->name}!\n\n🏋️ {$title}\n\n{$description}",
+            "مرحباً يا {$user->name}!\n\n🏋️ {$title}\n\n{$description}",
             0,
             1000
         );
@@ -397,19 +444,8 @@ Route::get('/cron/send-exercises', function (Request $request) {
         $ok = false;
 
         try {
-            // 1) الإرسال عبر رابط الصورة (الأسرع)
-            if ($photoUrl) {
-                $r = Http::connectTimeout(5)->timeout(15)->post("{$api}/sendPhoto", [
-                    'chat_id' => $user->telegram_chat_id,
-                    'photo' => $photoUrl,
-                    'caption' => $caption,
-                    'reply_markup' => $keyboard,
-                ]);
-                $ok = $r->json('ok') === true;
-            }
-
-            // 2) رفع الملف المحلي إن فشل الرابط
-            if (!$ok && $localPath) {
+            // 1) رفع الملف المحلي أولاً (لا يحتاج أن يفتح تيليجرام موقعك)
+            if ($localPath) {
                 $r = Http::connectTimeout(5)->timeout(20)
                     ->attach('photo', file_get_contents($localPath), basename($localPath))
                     ->post("{$api}/sendPhoto", [
@@ -417,6 +453,17 @@ Route::get('/cron/send-exercises', function (Request $request) {
                         'caption' => $caption,
                         'reply_markup' => $keyboard,
                     ]);
+                $ok = $r->json('ok') === true;
+            }
+
+            // 2) الرابط إن لم يوجد ملف محلي أو فشل الرفع
+            if (!$ok && $photoUrl) {
+                $r = Http::connectTimeout(5)->timeout(15)->post("{$api}/sendPhoto", [
+                    'chat_id' => $user->telegram_chat_id,
+                    'photo' => $photoUrl,
+                    'caption' => $caption,
+                    'reply_markup' => $keyboard,
+                ]);
                 $ok = $r->json('ok') === true;
             }
 
@@ -439,4 +486,39 @@ Route::get('/cron/send-exercises', function (Request $request) {
     }
 
     return response()->json(['status' => 'success', 'sent' => $sent]);
+});
+
+// مسار فحص مؤقت لإرسال الصور (احذفه بعد التشخيص)
+Route::get('/cron/debug-photo', function (Request $request) {
+    $secret = (string) env('TELEGRAM_CRON_SECRET');
+
+    if ($secret === '' || !hash_equals($secret, (string) $request->query('key'))) {
+        return response()->json(['error' => 'Unauthorized'], 401);
+    }
+
+    $token = config('services.telegram.bot_token', env('TELEGRAM_BOT_TOKEN'));
+    $user = User::whereNotNull('telegram_chat_id')->first();
+    $exercise = Exercise::inRandomOrder()->first();
+
+    if (!$user || !$exercise) {
+        return response()->json(['error' => 'No linked user or no exercise found']);
+    }
+
+    $raw = trim((string) $exercise->image_path);
+    $clean = ltrim(preg_replace('#^(public/|storage/)#i', '', $raw), '/');
+    $url = preg_match('#^https?://#i', $raw) ? $raw : asset($clean);
+
+    $r = Http::timeout(15)->post("https://api.telegram.org/bot{$token}/sendPhoto", [
+        'chat_id' => $user->telegram_chat_id,
+        'photo' => $url,
+        'caption' => 'test',
+    ]);
+
+    return response()->json([
+        'image_path' => $raw,
+        'photo_url' => $url,
+        'file_in_container' => is_file(public_path($clean)) || is_file(public_path('storage/' . $clean)),
+        'telegram_ok' => $r->json('ok'),
+        'telegram_error' => $r->json('description'),
+    ]);
 });
