@@ -371,7 +371,7 @@ Route::get('/cron/send-exercises', function (Request $request) {
                 ->timeout(10)
                 ->post("https://api.telegram.org/bot{$token}/sendMessage", [
                     'chat_id' => $user->telegram_chat_id,
-                    'text' => "🌅 صباح النشاط يا {$user->name}!\n\n🏋️ {$title}\n\n{$description}",
+                    'text' => "🌅 مرحبا يا {$user->name}!\n\n🏋️ {$title}\n\n{$description}",
                     'reply_markup' => json_encode($keyboard, JSON_UNESCAPED_UNICODE),
                 ]);
 
