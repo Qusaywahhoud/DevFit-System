@@ -341,6 +341,7 @@ Route::get('/cron/send-exercises', function (Request $request) {
     }
 
     $token = config('services.telegram.bot_token', env('TELEGRAM_BOT_TOKEN'));
+    $api = "https://api.telegram.org/bot{$token}";
     $users = User::whereNotNull('telegram_chat_id')->get();
     $sent = 0;
 
@@ -357,25 +358,79 @@ Route::get('/cron/send-exercises', function (Request $request) {
         $description = $exercise->description_ar
             ?: ($exercise->getRawOriginal('description') ?: 'نفّذ التمرين بهدوء وبدون ألم.');
 
-        $keyboard = [
+        $caption = mb_substr(
+            " مرحبا يا {$user->name}!\n\n🏋️ {$title}\n\n{$description}",
+            0,
+            1000
+        );
+
+        $keyboard = json_encode([
             'inline_keyboard' => [[
-                [
-                    'text' => '✅ إكمال التمرين',
-                    'callback_data' => 'complete_' . $exercise->id,
-                ],
+                ['text' => '✅ إكمال التمرين', 'callback_data' => 'complete_' . $exercise->id],
             ]],
-        ];
+        ], JSON_UNESCAPED_UNICODE);
+
+        // تحديد مسار الصورة
+        $rawPhoto = trim((string) $exercise->image_path);
+        $photoUrl = null;
+        $localPath = null;
+
+        if ($rawPhoto !== '') {
+            if (preg_match('#^https?://#i', $rawPhoto)) {
+                $photoUrl = $rawPhoto;
+            } else {
+                $clean = ltrim(preg_replace('#^public/#i', '', $rawPhoto), '/');
+                $clean = ltrim(preg_replace('#^storage/#i', '', $clean), '/');
+
+                if (is_file(public_path($clean))) {
+                    $localPath = public_path($clean);
+                    $photoUrl = asset($clean);
+                } elseif (is_file(public_path('storage/' . $clean))) {
+                    $localPath = public_path('storage/' . $clean);
+                    $photoUrl = asset('storage/' . $clean);
+                } else {
+                    $photoUrl = asset($clean);
+                }
+            }
+        }
+
+        $ok = false;
 
         try {
-            $response = Http::connectTimeout(5)
-                ->timeout(10)
-                ->post("https://api.telegram.org/bot{$token}/sendMessage", [
+            // 1) الإرسال عبر رابط الصورة (الأسرع)
+            if ($photoUrl) {
+                $r = Http::connectTimeout(5)->timeout(15)->post("{$api}/sendPhoto", [
                     'chat_id' => $user->telegram_chat_id,
-                    'text' => "🌅 مرحبا يا {$user->name}!\n\n🏋️ {$title}\n\n{$description}",
-                    'reply_markup' => json_encode($keyboard, JSON_UNESCAPED_UNICODE),
+                    'photo' => $photoUrl,
+                    'caption' => $caption,
+                    'reply_markup' => $keyboard,
                 ]);
+                $ok = $r->json('ok') === true;
+            }
 
-            if ($response->json('ok') === true) {
+            // 2) رفع الملف المحلي إن فشل الرابط
+            if (!$ok && $localPath) {
+                $r = Http::connectTimeout(5)->timeout(20)
+                    ->attach('photo', file_get_contents($localPath), basename($localPath))
+                    ->post("{$api}/sendPhoto", [
+                        'chat_id' => $user->telegram_chat_id,
+                        'caption' => $caption,
+                        'reply_markup' => $keyboard,
+                    ]);
+                $ok = $r->json('ok') === true;
+            }
+
+            // 3) نص فقط إن لم تنجح الصورة
+            if (!$ok) {
+                $r = Http::connectTimeout(5)->timeout(10)->post("{$api}/sendMessage", [
+                    'chat_id' => $user->telegram_chat_id,
+                    'text' => $caption,
+                    'reply_markup' => $keyboard,
+                ]);
+                $ok = $r->json('ok') === true;
+            }
+
+            if ($ok) {
                 $sent++;
             }
         } catch (\Throwable $e) {
